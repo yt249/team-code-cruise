@@ -1,0 +1,439 @@
+.payment-ui {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: var(--spacing-lg);
+}
+
+/* Payment Header */
+.payment-header {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+}
+
+.payment-header h1 {
+  margin-bottom: var(--spacing-sm);
+}
+
+/* Receipt Header */
+.receipt-header {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+}
+
+.receipt-icon {
+  width: 80px;
+  height: 80px;
+  background-color: var(--color-success);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  margin: 0 auto var(--spacing-md);
+  font-weight: bold;
+}
+
+/* Trip Summary Card */
+.trip-summary-card {
+  margin-bottom: var(--spacing-lg);
+}
+
+.summary-header {
+  margin-bottom: var(--spacing-md);
+}
+
+.summary-route {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background-color: var(--color-surface);
+  border-radius: var(--radius-md);
+}
+
+.route-endpoint {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+}
+
+.route-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.route-arrow {
+  font-size: 20px;
+  color: var(--color-text-secondary);
+}
+
+.summary-details {
+  display: flex;
+  gap: var(--spacing-lg);
+}
+
+.detail-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+/* Fare Card */
+.fare-card {
+  margin-bottom: var(--spacing-lg);
+}
+
+.fare-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.fare-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.discount-applied {
+  padding: var(--spacing-sm);
+  background-color: #e8f5e9;
+  border-radius: var(--radius-sm);
+  margin: var(--spacing-xs) 0;
+}
+
+.subtotal-row {
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+  margin-top: var(--spacing-sm);
+}
+
+/* Tip Card */
+.tip-card {
+  margin-bottom: var(--spacing-lg);
+}
+
+.tip-presets {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.tip-button {
+  padding: var(--spacing-md);
+  background-color: var(--color-background);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-weight: var(--font-weight-medium);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+  transition: all var(--transition-base);
+  width: auto;
+}
+
+.tip-button:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+}
+
+.tip-button.active {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.tip-amount {
+  opacity: 0.8;
+}
+
+.custom-tip-input {
+  margin-top: var(--spacing-md);
+}
+
+.custom-tip-input input {
+  width: 100%;
+  padding: var(--spacing-md);
+  font-size: var(--font-size-lg);
+  text-align: center;
+  font-weight: var(--font-weight-medium);
+}
+
+/* Payment Method Card */
+.payment-method-card {
+  margin-bottom: var(--spacing-lg);
+}
+
+.payment-methods {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.payment-method {
+  padding: var(--spacing-md);
+  background-color: var(--color-background);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  text-align: left;
+  transition: all var(--transition-base);
+  width: 100%;
+}
+
+.payment-method:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+}
+
+.payment-method.active {
+  border-color: var(--color-primary);
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.payment-icon {
+  font-size: 32px;
+}
+
+.payment-details {
+  flex: 1;
+}
+
+.payment-name {
+  margin-bottom: var(--spacing-xs);
+}
+
+.payment-radio {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 14px;
+  color: white;
+  background-color: var(--color-primary);
+}
+
+.payment-method:not(.active) .payment-radio {
+  background-color: transparent;
+}
+
+/* Total Card */
+.total-card {
+  margin-bottom: var(--spacing-lg);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.total-amount {
+  font-size: var(--font-size-2xl);
+}
+
+/* Receipt Card */
+.receipt-card {
+  margin-bottom: var(--spacing-lg);
+}
+
+.receipt-section {
+  padding: var(--spacing-lg) 0;
+}
+
+.receipt-section:not(:last-child) {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.receipt-title {
+  margin-bottom: var(--spacing-xs);
+}
+
+.receipt-date {
+  color: var(--color-text-secondary);
+}
+
+.section-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--spacing-md);
+}
+
+/* Driver Summary */
+.driver-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.driver-avatar-small {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.driver-summary > div:nth-child(2) {
+  flex: 1;
+}
+
+.driver-rating-small {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Trip Summary in Receipt */
+.trip-summary {
+  margin-bottom: var(--spacing-md);
+}
+
+.summary-location {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) 0;
+}
+
+.location-pin {
+  font-size: 20px;
+}
+
+.summary-divider {
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 20px;
+  padding: var(--spacing-xs) 0;
+}
+
+.trip-stats {
+  display: flex;
+  gap: var(--spacing-xl);
+  padding-top: var(--spacing-md);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+/* Payment Breakdown in Receipt */
+.payment-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.discount-row {
+  padding: var(--spacing-sm);
+  background-color: #e8f5e9;
+  border-radius: var(--radius-sm);
+}
+
+.total-row {
+  padding-top: var(--spacing-md);
+  border-top: 2px solid var(--color-border);
+  margin-top: var(--spacing-sm);
+}
+
+.total-price {
+  font-size: var(--font-size-xl);
+  color: var(--color-primary);
+}
+
+.payment-method-used {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--spacing-md);
+  background-color: var(--color-surface);
+  border-radius: var(--radius-md);
+}
+
+/* Actions */
+.receipt-actions {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+.receipt-actions button {
+  flex: 1;
+}
+
+.complete-payment-button {
+  width: 100%;
+}
+
+/* Responsive */
+@media (max-width: 767px) {
+  .payment-ui {
+    padding: var(--spacing-md);
+  }
+
+  .tip-presets {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .receipt-actions {
+    flex-direction: column;
+  }
+
+  .summary-route {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .route-arrow {
+    transform: rotate(90deg);
+    margin: var(--spacing-xs) 0;
+  }
+
+  .summary-details {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .trip-stats {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+}
+
+@media (min-width: 768px) {
+  .payment-ui {
+    padding: var(--spacing-xl);
+  }
+}

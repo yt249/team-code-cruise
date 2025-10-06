@@ -1,0 +1,279 @@
+/* Route Bar at Top of Map */
+.route-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: white;
+  padding: var(--spacing-md) var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+.route-location {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+}
+
+.route-icon.pickup {
+  color: var(--color-pickup);
+  font-size: 18px;
+}
+
+.route-icon.destination {
+  color: var(--color-destination);
+  font-size: 18px;
+}
+
+.route-arrow {
+  color: var(--color-text-secondary);
+  font-size: 18px;
+}
+
+/* Tracking Sidebar */
+.tracking-sidebar {
+  padding: var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Trip Status Card */
+.trip-status-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+/* Status Header (for InTrip) */
+.status-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+
+.status-icon.destination-icon {
+  font-size: 24px;
+  margin-top: var(--spacing-xs);
+}
+
+.status-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  margin: 0 0 var(--spacing-xs) 0;
+}
+
+.status-subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* ETA Display */
+.eta-display {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.eta-icon {
+  font-size: 16px;
+}
+
+.eta-time {
+  font-weight: var(--font-weight-medium);
+}
+
+/* Share Trip Button */
+.share-trip-button {
+  width: 100%;
+  padding: var(--spacing-md);
+  background-color: white;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  margin-top: auto;
+}
+
+.share-trip-button:hover {
+  background-color: var(--color-surface);
+  border-color: var(--color-text-secondary);
+}
+
+/* Driver Card (New Design) */
+.driver-card-new {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+}
+
+.driver-avatar-new {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: var(--font-weight-bold);
+  flex-shrink: 0;
+}
+
+.driver-info-new {
+  flex: 1;
+}
+
+.driver-info-new h3 {
+  margin: 0 0 var(--spacing-xs) 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+}
+
+.driver-vehicle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--spacing-xs) 0;
+}
+
+.driver-rating-new {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.driver-eta-new {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.eta-value-new {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  line-height: 1;
+}
+
+.eta-label-new {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-top: var(--spacing-xs);
+}
+
+/* Status Text */
+.status-text {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  text-align: center;
+  margin: 0;
+}
+
+/* Arrived Banner */
+.arrived-banner {
+  padding: var(--spacing-md);
+  background-color: var(--color-success);
+  color: white;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.checkmark {
+  font-size: 20px;
+}
+
+/* Start Trip Button */
+.start-trip-button-new {
+  width: 100%;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: var(--color-success);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.start-trip-button-new:hover {
+  background-color: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 200, 83, 0.4);
+}
+
+/* Cancel Ride Button */
+.cancel-ride-button {
+  width: 100%;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: white;
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.cancel-ride-button:hover {
+  background-color: #ffebee;
+  border-color: #d32f2f;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .route-bar {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-sm);
+  }
+
+  .tracking-sidebar {
+    padding: var(--spacing-md);
+  }
+}
+
+@media (max-width: 768px) {
+  .route-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+
+  .route-arrow {
+    transform: rotate(90deg);
+  }
+
+  .driver-card-new {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .driver-eta-new {
+    text-align: center;
+  }
+}

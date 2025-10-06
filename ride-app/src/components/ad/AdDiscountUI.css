@@ -1,0 +1,220 @@
+/* Ad Modal Overlay */
+.ad-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal);
+}
+
+/* Ad Offer Modal (matching mockup) */
+.ad-offer-modal-new {
+  background-color: white;
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-2xl);
+  max-width: 500px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.ad-modal-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  margin: 0 0 var(--spacing-sm) 0;
+  color: var(--color-text);
+}
+
+.ad-modal-subtitle {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--spacing-xl) 0;
+}
+
+/* Play Button */
+.play-button {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: #c8e6c9;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--spacing-xl) auto;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.play-button:hover {
+  background-color: #a5d6a7;
+  transform: scale(1.05);
+}
+
+.play-icon {
+  font-size: 32px;
+  color: var(--color-success);
+  margin-left: 4px;
+}
+
+/* Fare Comparison */
+.fare-comparison {
+  margin: var(--spacing-xl) 0;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.fare-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--font-size-base);
+}
+
+.fare-row.original-fare {
+  color: var(--color-text);
+}
+
+.fare-row.discounted-fare {
+  color: var(--color-success);
+  font-weight: var(--font-weight-bold);
+}
+
+.strikethrough {
+  text-decoration: line-through;
+  color: var(--color-text-secondary);
+}
+
+.discount-price {
+  color: var(--color-success);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+/* Modal Actions */
+.ad-modal-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xl);
+}
+
+.skip-button-new {
+  flex: 1;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: white;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.skip-button-new:hover {
+  background-color: var(--color-surface);
+  border-color: var(--color-text-secondary);
+}
+
+.watch-ad-button {
+  flex: 1;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: var(--color-success);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+}
+
+.watch-ad-button:hover {
+  background-color: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 200, 83, 0.4);
+}
+
+/* Video Player Overlay */
+.video-player-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #000000;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-player-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.ad-video-fullscreen {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.video-controls-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: var(--spacing-lg);
+}
+
+.video-progress-bar-new {
+  width: 100%;
+  height: 6px;
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.video-progress-fill-new {
+  height: 100%;
+  background-color: var(--color-success);
+  transition: width 0.3s ease;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ad-offer-modal-new {
+    padding: var(--spacing-xl);
+    max-width: 90%;
+  }
+
+  .ad-modal-title {
+    font-size: var(--font-size-lg);
+  }
+
+  .play-button {
+    width: 64px;
+    height: 64px;
+  }
+
+  .play-icon {
+    font-size: 24px;
+  }
+
+  .ad-modal-actions {
+    flex-direction: column;
+  }
+}
