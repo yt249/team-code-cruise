@@ -91,12 +91,12 @@ export function getRoute(pickup, dropoff) {
   );
 
   const fare = calculateFare(distance);
-  const eta = calculateETA(distance);
+  const estimatedTime = calculateETA(distance);
 
   return {
     distance: Math.round(distance * 10) / 10, // Round to 1 decimal
     fare,
-    eta,
+    estimatedTime, // Changed from 'eta' to 'estimatedTime'
     pickup,
     dropoff
   };

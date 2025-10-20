@@ -91,6 +91,7 @@ export default function DriverTrackingUI() {
           pickup={pickupLocation}
           destination={destinationLocation}
           showRoute={true}
+          useDirections={true}
           routeCompleted={trip.state === 'Completed'}
           driverPosition={driverLocation}
         />

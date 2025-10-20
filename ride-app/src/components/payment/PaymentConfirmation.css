@@ -1,0 +1,709 @@
+.payment-confirmation-layout {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  background: #0A0A0A;
+  padding: var(--spacing-xl);
+  overflow-y: auto;
+}
+
+.payment-panel {
+  width: 100%;
+  max-width: 600px;
+  background: linear-gradient(180deg, #1A1A1A 0%, #0F0F0F 100%);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9);
+  animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header */
+.payment-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-xl);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.back-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--color-secondary);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  padding: 0;
+}
+
+.back-button:hover {
+  background-color: var(--color-surface-hover);
+  border-color: var(--color-primary);
+  transform: translateX(-2px);
+}
+
+.payment-header h2 {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  margin: 0;
+}
+
+.payment-content {
+  padding: var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+/* Trip Summary Card */
+.trip-summary-card {
+  background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-background) 100%);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-xl);
+  position: relative;
+  overflow: hidden;
+}
+
+.trip-summary-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #FFD60A 0%, #FFC300 100%);
+}
+
+.trip-summary-card h3 {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  margin: 0 0 var(--spacing-lg) 0;
+}
+
+.route-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.route-point {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+
+.route-marker {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.pickup-marker {
+  background-color: rgba(255, 214, 10, 0.2);
+  border: 2px solid var(--color-primary);
+}
+
+.dropoff-marker {
+  background-color: rgba(255, 82, 82, 0.2);
+  border: 2px solid var(--color-error);
+}
+
+.route-info {
+  flex: 1;
+}
+
+.route-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--spacing-xs);
+}
+
+.route-address {
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.route-line {
+  width: 2px;
+  height: 24px;
+  background: linear-gradient(180deg, var(--color-primary) 0%, var(--color-error) 100%);
+  margin-left: 19px;
+  opacity: 0.5;
+}
+
+.trip-stats {
+  display: flex;
+  gap: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--color-border);
+}
+
+.stat-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background-color: rgba(255, 214, 10, 0.05);
+  border-radius: var(--radius-md);
+}
+
+.stat-icon {
+  font-size: 24px;
+  filter: grayscale(100%);
+}
+
+.stat-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-value {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.stat-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Ad Offer Card */
+.ad-offer-card {
+  background: linear-gradient(135deg, rgba(255, 214, 10, 0.1) 0%, rgba(255, 195, 0, 0.05) 100%);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 214, 10, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(255, 214, 10, 0);
+  }
+}
+
+.ad-offer-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.ad-offer-content {
+  flex: 1;
+}
+
+.ad-offer-content h4 {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  margin: 0 0 var(--spacing-xs) 0;
+  color: var(--color-primary);
+}
+
+.ad-offer-content p {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.ad-offer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.watch-ad-btn {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background: var(--color-primary);
+  color: #0A0A0A;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.watch-ad-btn:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-glow);
+}
+
+.skip-ad-btn {
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: none;
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.skip-ad-btn:hover {
+  color: var(--color-text);
+}
+
+/* Payment Methods */
+.payment-methods-section h3 {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  margin: 0 0 var(--spacing-md) 0;
+}
+
+.payment-methods-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.payment-method-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background-color: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  text-align: left;
+  width: 100%;
+}
+
+.payment-method-card:hover {
+  border-color: var(--color-primary);
+  background-color: var(--color-surface-hover);
+}
+
+.payment-method-card.selected {
+  border-color: var(--color-primary);
+  background-color: var(--color-surface-hover);
+  box-shadow: var(--shadow-glow);
+}
+
+.payment-method-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  background-color: var(--color-background);
+  border-radius: var(--radius-md);
+}
+
+.payment-method-info {
+  flex: 1;
+}
+
+.payment-method-name {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.payment-method-details {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+}
+
+.payment-method-radio {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+  font-weight: 700;
+  transition: all var(--transition-base);
+}
+
+.payment-method-card.selected .payment-method-radio {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary);
+  color: #0A0A0A;
+}
+
+/* Fare Breakdown */
+.fare-breakdown-section h3 {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  margin: 0 0 var(--spacing-md) 0;
+}
+
+.fare-items {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.fare-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+}
+
+.fare-item.discount-item {
+  color: var(--color-success);
+  padding: var(--spacing-sm);
+  background-color: rgba(0, 230, 118, 0.1);
+  border-radius: var(--radius-sm);
+  margin: 0 calc(-1 * var(--spacing-sm));
+  padding-left: var(--spacing-md);
+  padding-right: var(--spacing-md);
+}
+
+.fare-item.total-fare {
+  padding-top: var(--spacing-md);
+  border-top: 2px solid var(--color-border);
+  margin-top: var(--spacing-sm);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.total-amount {
+  font-size: 28px;
+  color: var(--color-primary);
+  text-shadow: 0 0 20px rgba(255, 214, 10, 0.3);
+}
+
+/* Confirm Button */
+.confirm-ride-button {
+  width: 100%;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+  color: #0A0A0A;
+  border: none;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all var(--transition-base);
+  box-shadow: 0 12px 40px rgba(255, 214, 10, 0.4);
+  letter-spacing: 0.5px;
+  margin-top: var(--spacing-lg);
+}
+
+.confirm-ride-button:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 50px rgba(255, 214, 10, 0.5);
+}
+
+.button-amount {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+}
+
+/* Ad Modal Overlay */
+.ad-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(10, 10, 10, 0.95);
+  backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: var(--spacing-2xl);
+}
+
+.ad-modal-container {
+  width: 100%;
+  max-width: 900px;
+  background: linear-gradient(180deg, #1A1A1A 0%, #0F0F0F 100%);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 214, 10, 0.1);
+  overflow: hidden;
+  animation: modalSlideIn 0.4s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.ad-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-xl) var(--spacing-2xl);
+  border-bottom: 1px solid var(--color-border);
+  background: linear-gradient(90deg, rgba(255, 214, 10, 0.05) 0%, transparent 100%);
+}
+
+.ad-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--color-text);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.ad-icon {
+  font-size: 20px;
+}
+
+.ad-timer {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-primary);
+  background-color: rgba(255, 214, 10, 0.1);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 214, 10, 0.3);
+}
+
+.ad-video-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background-color: #000000;
+  overflow: hidden;
+}
+
+.ad-video-player {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background-color: #000000;
+}
+
+.ad-progress-container {
+  padding: var(--spacing-xl) var(--spacing-2xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.ad-progress-bar {
+  width: 100%;
+  height: 8px;
+  background-color: var(--color-border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  position: relative;
+}
+
+.ad-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+  transition: width 0.1s linear;
+  box-shadow: 0 0 20px rgba(255, 214, 10, 0.5);
+  border-radius: var(--radius-full);
+  position: relative;
+}
+
+.ad-progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 20px;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3));
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+.ad-reward-text {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  text-align: center;
+  font-weight: 500;
+}
+
+.ad-reward-text::before {
+  content: '💰';
+  margin-right: var(--spacing-sm);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ad-modal-overlay {
+    padding: var(--spacing-lg);
+  }
+
+  .ad-modal-header {
+    padding: var(--spacing-lg);
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    align-items: flex-start;
+  }
+
+  .ad-progress-container {
+    padding: var(--spacing-lg);
+  }
+}
+
+.ad-player-content {
+  text-align: center;
+  max-width: 600px;
+  padding: var(--spacing-2xl);
+}
+
+.ad-video-placeholder {
+  background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-background) 100%);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-2xl);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.ad-icon {
+  font-size: 80px;
+  margin-bottom: var(--spacing-lg);
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.ad-video-placeholder h3 {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  margin: 0 0 var(--spacing-sm) 0;
+  color: var(--color-text);
+}
+
+.ad-video-placeholder p {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--spacing-2xl) 0;
+}
+
+.ad-progress-bar {
+  width: 100%;
+  height: 8px;
+  background-color: var(--color-border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-bottom: var(--spacing-md);
+}
+
+.ad-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+  transition: width 0.1s linear;
+  box-shadow: 0 0 20px rgba(255, 214, 10, 0.5);
+}
+
+.ad-progress-text {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--color-primary);
+  text-shadow: 0 0 20px rgba(255, 214, 10, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .payment-confirmation-layout {
+    padding: var(--spacing-md);
+  }
+
+  .payment-header {
+    padding: var(--spacing-lg);
+  }
+
+  .payment-content {
+    padding: var(--spacing-lg);
+  }
+
+  .trip-summary-card,
+  .ad-offer-card {
+    padding: var(--spacing-md);
+  }
+
+  .trip-stats {
+    flex-direction: column;
+  }
+
+  .ad-offer-card {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .ad-offer-actions {
+    width: 100%;
+  }
+
+  .watch-ad-btn {
+    width: 100%;
+  }
+}

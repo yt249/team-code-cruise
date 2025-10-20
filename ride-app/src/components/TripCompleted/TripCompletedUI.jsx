@@ -4,7 +4,7 @@ import { formatCurrency, formatTime } from '../../utils/helpers';
 import Map from '../Map/Map';
 import './TripCompletedUI.css';
 
-export default function TripCompletedUI() {
+export default function TripCompletedUI({ onBookAnother }) {
   const { booking, trip, reset } = useBooking();
   const [rating, setRating] = useState(0);
 
@@ -24,6 +24,9 @@ export default function TripCompletedUI() {
 
   const handleRequestAnother = () => {
     reset();
+    if (onBookAnother) {
+      onBookAnother();
+    }
   };
 
   return (
@@ -48,6 +51,7 @@ export default function TripCompletedUI() {
           pickup={pickupLocation}
           destination={destinationLocation}
           showRoute={true}
+          useDirections={true}
           routeCompleted={true}
         />
       </div>

@@ -88,9 +88,89 @@ export function getNearestDriver(pickupLocation) {
   return available[Math.floor(Math.random() * available.length)];
 }
 
-// Function to simulate driver movement
+// Function to simulate driver movement using Google Directions API
 export function simulateDriverMovement(driver, destination, callback) {
-  const steps = 20; // Number of position updates
+  // Check if Google Maps is loaded
+  if (!window.google || !window.google.maps) {
+    console.error('Google Maps not loaded');
+    return null;
+  }
+
+  const directionsService = new window.google.maps.DirectionsService();
+
+  // Get actual route from Directions API
+  directionsService.route(
+    {
+      origin: driver.location,
+      destination: destination,
+      travelMode: window.google.maps.TravelMode.DRIVING,
+    },
+    (result, status) => {
+      if (status === 'OK') {
+        // Extract all points from the route
+        const route = result.routes[0];
+        const path = route.overview_path; // Array of LatLng points along the route
+
+        if (!path || path.length === 0) {
+          console.error('No path found in route');
+          return;
+        }
+
+        // Convert path to simple objects
+        const waypoints = path.map(point => ({
+          lat: point.lat(),
+          lng: point.lng()
+        }));
+
+        // Simulate movement along the path
+        const totalSteps = 30; // Number of position updates
+        let currentStep = 0;
+
+        const interval = setInterval(() => {
+          currentStep++;
+          const progress = currentStep / totalSteps;
+
+          // Calculate which segment of the path we're on
+          const pathProgress = progress * (waypoints.length - 1);
+          const segmentIndex = Math.floor(pathProgress);
+          const segmentProgress = pathProgress - segmentIndex;
+
+          let newLocation;
+          if (segmentIndex >= waypoints.length - 1) {
+            // At the end
+            newLocation = waypoints[waypoints.length - 1];
+          } else {
+            // Interpolate between two waypoints
+            const start = waypoints[segmentIndex];
+            const end = waypoints[segmentIndex + 1];
+            newLocation = {
+              lat: start.lat + (end.lat - start.lat) * segmentProgress,
+              lng: start.lng + (end.lng - start.lng) * segmentProgress
+            };
+          }
+
+          callback(newLocation, progress);
+
+          if (currentStep >= totalSteps) {
+            clearInterval(interval);
+          }
+        }, 1000); // Update every second
+
+        return interval;
+      } else {
+        console.error('Directions request failed:', status);
+        // Fallback to simple linear movement
+        return fallbackMovement(driver, destination, callback);
+      }
+    }
+  );
+
+  return null; // Will be returned by the async callback
+}
+
+// Fallback movement if Directions API fails
+function fallbackMovement(driver, destination, callback) {
+  const steps = 20;
   let currentStep = 0;
 
   const startLat = driver.location.lat;
@@ -98,37 +178,21 @@ export function simulateDriverMovement(driver, destination, callback) {
   const endLat = destination.lat;
   const endLng = destination.lng;
 
-  // Create L-shaped path matching the map route: vertical first, then horizontal
-  // Route on map: (startLng, startLat) -> (startLng, endLat) -> (endLng, endLat)
-
   const interval = setInterval(() => {
     currentStep++;
     const progress = currentStep / steps;
 
-    let newLocation;
+    const newLocation = {
+      lat: startLat + ((endLat - startLat) * progress),
+      lng: startLng + ((endLng - startLng) * progress)
+    };
 
-    // First half: move vertically (latitude changes, longitude stays same)
-    if (progress <= 0.5) {
-      const verticalProgress = progress * 2; // 0 to 1 in first half
-      newLocation = {
-        lat: startLat + ((endLat - startLat) * verticalProgress),
-        lng: startLng
-      };
-    } else {
-      // Second half: move horizontally (longitude changes, latitude stays at endLat)
-      const horizontalProgress = (progress - 0.5) * 2; // 0 to 1 in second half
-      newLocation = {
-        lat: endLat,
-        lng: startLng + ((endLng - startLng) * horizontalProgress)
-      };
-    }
-
-    callback(newLocation, progress); // Progress 0-1
+    callback(newLocation, progress);
 
     if (currentStep >= steps) {
       clearInterval(interval);
     }
-  }, 1000); // Update every second
+  }, 1000);
 
   return interval;
 }

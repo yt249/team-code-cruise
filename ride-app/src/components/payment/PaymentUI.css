@@ -24,7 +24,7 @@
   width: 80px;
   height: 80px;
   background-color: var(--color-success);
-  color: white;
+  color: #0A0A0A;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -32,6 +32,7 @@
   font-size: 48px;
   margin: 0 auto var(--spacing-md);
   font-weight: bold;
+  box-shadow: 0 0 30px rgba(0, 230, 118, 0.3);
 }
 
 /* Trip Summary Card */
@@ -49,7 +50,8 @@
   gap: var(--spacing-md);
   margin-bottom: var(--spacing-lg);
   padding: var(--spacing-md);
-  background-color: var(--color-surface);
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
 }
 
@@ -102,9 +104,10 @@
 
 .discount-applied {
   padding: var(--spacing-sm);
-  background-color: #e8f5e9;
+  background-color: rgba(0, 230, 118, 0.1);
   border-radius: var(--radius-sm);
   margin: var(--spacing-xs) 0;
+  border: 1px solid var(--color-success);
 }
 
 .subtotal-row {
@@ -131,24 +134,27 @@
   border: 2px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-bold);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--spacing-xs);
   transition: all var(--transition-base);
   width: auto;
+  letter-spacing: 0.5px;
 }
 
 .tip-button:hover:not(:disabled) {
   border-color: var(--color-primary);
   transform: translateY(-2px);
+  box-shadow: var(--shadow-glow);
 }
 
 .tip-button.active {
   border-color: var(--color-primary);
   background-color: var(--color-primary);
-  color: white;
+  color: #0A0A0A;
+  box-shadow: var(--shadow-glow);
 }
 
 .tip-amount {
@@ -194,11 +200,13 @@
 .payment-method:hover:not(:disabled) {
   border-color: var(--color-primary);
   transform: translateY(-2px);
+  box-shadow: var(--shadow-glow);
 }
 
 .payment-method.active {
   border-color: var(--color-primary);
-  background-color: rgba(0, 0, 0, 0.02);
+  background-color: var(--color-surface-hover);
+  box-shadow: var(--shadow-glow);
 }
 
 .payment-icon {
@@ -223,7 +231,7 @@
   justify-content: center;
   flex-shrink: 0;
   font-size: 14px;
-  color: white;
+  color: #0A0A0A;
   background-color: var(--color-primary);
 }
 
@@ -234,8 +242,9 @@
 /* Total Card */
 .total-card {
   margin-bottom: var(--spacing-lg);
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: #0A0A0A;
+  border: none;
 }
 
 .total-row {
@@ -360,8 +369,9 @@
 
 .discount-row {
   padding: var(--spacing-sm);
-  background-color: #e8f5e9;
+  background-color: rgba(0, 230, 118, 0.1);
   border-radius: var(--radius-sm);
+  border: 1px solid var(--color-success);
 }
 
 .total-row {
@@ -379,7 +389,8 @@
   display: flex;
   justify-content: space-between;
   padding: var(--spacing-md);
-  background-color: var(--color-surface);
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
 }
 

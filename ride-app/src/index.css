@@ -1,22 +1,25 @@
 /* CSS Variables */
 :root {
-  /* Colors */
-  --color-primary: #00c853;
-  --color-primary-hover: #00a844;
-  --color-secondary: #f0f0f0;
-  --color-background: #ffffff;
-  --color-surface: #f9f9f9;
-  --color-border: #e0e0e0;
-  --color-text: #000000;
-  --color-text-secondary: #666666;
-  --color-success: #00c853;
-  --color-error: #f44336;
-  --color-warning: #ff9800;
-  --color-info: #2196f3;
-  --color-pickup: #00c853;
-  --color-destination: #f44336;
-  --color-route-active: #2196f3;
-  --color-route-completed: #00c853;
+  /* Colors - Dark Theme with Yellow Accents */
+  --color-primary: #FFD60A;
+  --color-primary-hover: #FFC300;
+  --color-primary-dark: #E5C100;
+  --color-secondary: #2A2A2A;
+  --color-background: #0A0A0A;
+  --color-surface: #1A1A1A;
+  --color-surface-hover: #252525;
+  --color-border: #333333;
+  --color-text: #FFFFFF;
+  --color-text-secondary: #A0A0A0;
+  --color-text-muted: #666666;
+  --color-success: #00E676;
+  --color-error: #FF5252;
+  --color-warning: #FFB74D;
+  --color-info: #40C4FF;
+  --color-pickup: #FFD60A;
+  --color-destination: #FF5252;
+  --color-route-active: #40C4FF;
+  --color-route-completed: #00E676;
 
   /* Spacing */
   --spacing-xs: 4px;
@@ -26,8 +29,8 @@
   --spacing-xl: 32px;
   --spacing-2xl: 48px;
 
-  /* Typography */
-  --font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  /* Typography - Tech-Savvy Font */
+  --font-family: 'Space Grotesk', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-size-xs: 12px;
   --font-size-sm: 14px;
   --font-size-base: 16px;
@@ -50,10 +53,12 @@
   --transition-base: 250ms ease;
   --transition-slow: 350ms ease;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  /* Shadows - Enhanced for Dark Theme */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.8);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.9);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.9);
+  --shadow-glow: 0 0 20px rgba(255, 214, 10, 0.15);
+  --shadow-glow-strong: 0 0 30px rgba(255, 214, 10, 0.3);
 
   /* Z-index */
   --z-modal: 1000;
@@ -118,23 +123,26 @@ p {
 button {
   font-family: var(--font-family);
   font-size: var(--font-size-base);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-bold);
   border: none;
   border-radius: var(--radius-md);
   padding: var(--spacing-md) var(--spacing-lg);
   cursor: pointer;
   transition: all var(--transition-base);
   background-color: var(--color-primary);
-  color: white;
+  color: #0A0A0A;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--spacing-sm);
+  box-shadow: var(--shadow-glow);
+  letter-spacing: 0.5px;
 }
 
 button:hover:not(:disabled) {
   background-color: var(--color-primary-hover);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow-strong);
 }
 
 button:active:not(:disabled) {
@@ -142,28 +150,32 @@ button:active:not(:disabled) {
 }
 
 button:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 button.secondary {
   background-color: var(--color-secondary);
   color: var(--color-text);
+  box-shadow: var(--shadow-md);
 }
 
 button.secondary:hover:not(:disabled) {
-  background-color: #e0e0e0;
+  background-color: var(--color-surface-hover);
 }
 
 button.outline {
   background-color: transparent;
   color: var(--color-primary);
   border: 2px solid var(--color-primary);
+  box-shadow: none;
 }
 
 button.outline:hover:not(:disabled) {
   background-color: var(--color-primary);
-  color: white;
+  color: #0A0A0A;
+  box-shadow: var(--shadow-glow);
 }
 
 button.small {
@@ -183,11 +195,11 @@ select {
   font-family: var(--font-family);
   font-size: var(--font-size-base);
   padding: var(--spacing-md);
-  border: 1px solid var(--color-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-md);
-  background-color: var(--color-background);
+  background-color: var(--color-surface);
   color: var(--color-text);
-  transition: border-color var(--transition-fast);
+  transition: all var(--transition-fast);
   width: 100%;
 }
 
@@ -196,11 +208,13 @@ textarea:focus,
 select:focus {
   outline: none;
   border-color: var(--color-primary);
+  background-color: var(--color-surface-hover);
+  box-shadow: 0 0 0 3px rgba(255, 214, 10, 0.1);
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
 }
 
 /* Cards */
@@ -208,7 +222,8 @@ textarea::placeholder {
   background-color: var(--color-surface);
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-border);
 }
 
 /* Modals */
@@ -218,7 +233,8 @@ textarea::placeholder {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -227,7 +243,8 @@ textarea::placeholder {
 }
 
 .modal {
-  background-color: var(--color-background);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   max-width: 500px;
   width: 100%;
@@ -334,6 +351,7 @@ a:focus-visible {
   border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
+  box-shadow: 0 0 20px rgba(255, 214, 10, 0.3);
 }
 
 @keyframes spin {

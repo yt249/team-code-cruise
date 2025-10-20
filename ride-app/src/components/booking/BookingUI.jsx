@@ -58,6 +58,11 @@ export default function BookingUI() {
 
       {/* Sidebar Section - 30% */}
       <div className="sidebar-section">
+        <div className="booking-header">
+          <h1>Book Your Ride</h1>
+          <p>Enter your pickup and destination to get started</p>
+        </div>
+
         <form onSubmit={handleRequestRide} className="ride-request-form">
           <div className="input-group">
             <div className="input-with-icon">

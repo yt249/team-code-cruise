@@ -1,31 +1,98 @@
+import { useState } from 'react';
 import { BookingProvider } from './context/BookingContext';
 import { AdProvider } from './context/AdContext';
 import { useBooking } from './context/BookingContext';
-import BookingUI from './components/booking/BookingUI';
-import AdDiscountUI from './components/ad/AdDiscountUI';
+import LandingPage from './components/Landing/LandingPage';
+import NewBookingUI from './components/booking/NewBookingUI';
+import PaymentConfirmation from './components/payment/PaymentConfirmation';
 import FindingDriverModal from './components/FindingDriverModal/FindingDriverModal';
 import DriverTrackingUI from './components/tracking/DriverTrackingUI';
 import TripCompletedUI from './components/TripCompleted/TripCompletedUI';
-import ErrorDemo from './components/ErrorDemo/ErrorDemo';
 import './App.css';
 
 function AppContent() {
-  const { booking, trip } = useBooking();
+  const { booking, trip, createBooking, requestDriver } = useBooking();
+  const [currentView, setCurrentView] = useState('landing'); // landing, booking, payment, tracking, completed
+  const [tripData, setTripData] = useState(null);
 
-  // Determine which view to show based on booking state
+  const handleGetStarted = () => {
+    setCurrentView('booking');
+  };
+
+  const handleProceedToPayment = (data) => {
+    setTripData(data);
+    setCurrentView('payment');
+  };
+
+  const handleConfirmPayment = async (paymentMethod, discount) => {
+    // Create booking with trip data
+    try {
+      // Create booking first
+      const discountData = discount ? { percentage: 12, amount: discount } : null;
+      const bookingData = await createBooking(tripData.quote, discountData);
+
+      // Set booking data with full location objects (including address)
+      bookingData.pickup = {
+        ...tripData.pickup.location,
+        address: tripData.pickup.address
+      };
+      bookingData.dropoff = {
+        ...tripData.dropoff.location,
+        address: tripData.dropoff.address
+      };
+
+      // Request driver
+      await requestDriver(bookingData);
+      setCurrentView('tracking');
+    } catch (err) {
+      console.error('Failed to request driver:', err);
+    }
+  };
+
+  const handleCancelPayment = () => {
+    setCurrentView('booking');
+  };
+
+  const handleBackToLanding = () => {
+    setTripData(null);
+    setCurrentView('landing');
+  };
+
+  // Render appropriate view
   const renderView = () => {
-    // Show trip completed UI if trip is completed
+    // Check for trip completion
     if (trip && trip.state === 'Completed') {
-      return <TripCompletedUI />;
+      return <TripCompletedUI onBookAnother={handleBackToLanding} />;
     }
 
-    // Show driver tracking UI if driver is assigned
-    if (booking && booking.driver && trip) {
+    // Check for active tracking
+    if (booking && booking.driver && trip && currentView === 'tracking') {
       return <DriverTrackingUI />;
     }
 
-    // Default to booking UI
-    return <BookingUI />;
+    // Render based on current view
+    switch (currentView) {
+      case 'landing':
+        return <LandingPage onGetStarted={handleGetStarted} />;
+
+      case 'booking':
+        return <NewBookingUI onProceedToPayment={handleProceedToPayment} />;
+
+      case 'payment':
+        return (
+          <PaymentConfirmation
+            tripData={tripData}
+            onConfirm={handleConfirmPayment}
+            onCancel={handleCancelPayment}
+          />
+        );
+
+      case 'tracking':
+        return <DriverTrackingUI />;
+
+      default:
+        return <LandingPage onGetStarted={handleGetStarted} />;
+    }
   };
 
   return (
@@ -34,10 +101,8 @@ function AppContent() {
         {renderView()}
       </main>
 
-      {/* Modals and overlays */}
-      <AdDiscountUI />
+      {/* Modals - FindingDriverModal only */}
       <FindingDriverModal />
-      <ErrorDemo />
     </div>
   );
 }
