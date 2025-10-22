@@ -8,6 +8,7 @@ export const quoteRouter = Router()
 const quoteSchema = z.object({
   pickup: z.object({ lat: z.number(), lon: z.number() }),
   dest: z.object({ lat: z.number(), lon: z.number() }),
+  tokenId: z.string().min(1).optional(),
   opts: z
     .object({
       vehicleType: z.string().optional(),
@@ -17,8 +18,12 @@ const quoteSchema = z.object({
 })
 
 quoteRouter.post('/', AuthService.optional, async (req, res) => {
-  const { pickup, dest, opts } = quoteSchema.parse(req.body)
+  const { pickup, dest, opts, tokenId } = quoteSchema.parse(req.body)
   const riderId = req.user?.sub
-  const quote = await QuoteService.getQuote(pickup, dest, { riderId, ...opts })
+  const quote = await QuoteService.getQuote(pickup, dest, {
+    riderId,
+    ...(opts ?? {}),
+    tokenId
+  })
   res.json(quote)
 })

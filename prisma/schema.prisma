@@ -23,6 +23,20 @@ enum PaymentStatus {
   FAILED
 }
 
+enum AdStatus {
+  OFFERED
+  WATCHING
+  COMPLETED
+  CANCELLED
+}
+
+enum TokenState {
+  ACTIVE
+  REDEEMED
+  EXPIRED
+  REVOKED
+}
+
 model User {
   id         String   @id @default(uuid())
   name       String
@@ -30,6 +44,8 @@ model User {
   password   String
   rating     Float    @default(5.0)
   rides      Ride[]   @relation("RiderRides")
+  adSessions AdSession[]
+  discountTokens DiscountToken[]
   createdAt  DateTime @default(now())
 }
 
@@ -64,6 +80,10 @@ model Ride {
   fareAmount    Int
   surge         Decimal         @default(1.0)
   currency      String          @default("USD")
+  discountPercent  Int?
+  discountedAmount Int?
+  discountTokenId  String?      @unique
+  discountToken    DiscountToken? @relation("RideDiscountToken", fields: [discountTokenId], references: [id])
   startedAt     DateTime?
   completedAt   DateTime?
   createdAt     DateTime        @default(now())
@@ -79,4 +99,34 @@ model PaymentIntent {
   method    String?
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
+}
+
+model AdSession {
+  id             String         @id @default(uuid())
+  riderId        String
+  rider          User           @relation(fields: [riderId], references: [id])
+  percent        Int
+  provider       String
+  status         AdStatus       @default(OFFERED)
+  startedAt      DateTime?
+  completedAt    DateTime?
+  playbackEvents Json
+  expiresAt      DateTime
+  createdAt      DateTime       @default(now())
+  token          DiscountToken? @relation("SessionToken")
+}
+
+model DiscountToken {
+  id             String        @id
+  riderId        String
+  rider          User          @relation(fields: [riderId], references: [id])
+  percent        Int
+  state          TokenState    @default(ACTIVE)
+  quoteId        String?
+  expiresAt      DateTime
+  redeemedRideId String?
+  createdAt      DateTime      @default(now())
+  sessionId      String        @unique
+  session        AdSession     @relation("SessionToken", fields: [sessionId], references: [id])
+  ride           Ride?         @relation("RideDiscountToken")
 }

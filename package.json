@@ -12,7 +12,7 @@
     "prisma:push": "prisma db push",
     "prisma:migrate": "prisma migrate dev",
     "lint": "eslint .",
-    "test": "RB_DATA_MODE=memory JWT_SECRET=test-secret node --test --import tsx ./tests/userStory1.test.ts"
+    "test": "RB_DATA_MODE=memory JWT_SECRET=test-secret node --test --import tsx ./tests/userStory*.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.19.1",

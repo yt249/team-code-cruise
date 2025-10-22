@@ -15,4 +15,13 @@ export class PricingService {
     const amount = Math.round(base * surge)
     return { amount, surge, currency: 'USD' as const }
   }
+
+  static applyDiscount(baseAmount: number, percent: number) {
+    const discount = Math.round((baseAmount * percent) / 100)
+    const discounted = Math.max(0, baseAmount - discount)
+    return {
+      discountedAmount: discounted,
+      savings: discount
+    }
+  }
 }

@@ -9,6 +9,9 @@ type QuoteRecord = {
   pickup: LatLng
   dest: LatLng
   expiresAt: Date
+  discountTokenId?: string | null
+  discountPercent?: number | null
+  discountedAmount?: number | null
 }
 
 class InMemoryQuoteStore {

@@ -13,6 +13,9 @@ export type RideRecord = {
   fareAmount: number
   surge: number
   currency: string
+  discountPercent: number | null
+  discountedAmount: number | null
+  discountTokenId: string | null
   pickup: LatLng
   dest: LatLng
   startedAt: Date | null
@@ -31,6 +34,9 @@ type RideRepo = {
     fareAmount: number
     surge: number
     currency: string
+    discountPercent?: number | null
+    discountedAmount?: number | null
+    discountTokenId?: string | null
   }): Promise<RideRecord>
   findById(id: string): Promise<RideRecord | null>
   update(
@@ -53,6 +59,9 @@ type RideRow = {
   fareAmount: number
   surge: Prisma.Decimal
   currency: string
+  discountPercent: number | null
+  discountedAmount: number | null
+  discountTokenId: string | null
   pickupLat: number
   pickupLon: number
   destLat: number
@@ -68,7 +77,7 @@ type RideRow = {
 const PrismaRideRepository: RideRepo = {
   async save(input) {
     const rows = await prisma.$queryRaw<RideRow[]>`
-      INSERT INTO "Ride" ("riderId","pickup","destination","fareAmount","surge","currency","status")
+      INSERT INTO "Ride" ("riderId","pickup","destination","fareAmount","surge","currency","status","discountPercent","discountedAmount","discountTokenId")
       VALUES (
         ${input.riderId},
         ST_SetSRID(ST_MakePoint(${input.pickup.lon}, ${input.pickup.lat}), 4326)::geography,
@@ -76,7 +85,10 @@ const PrismaRideRepository: RideRepo = {
         ${input.fareAmount},
         ${input.surge},
         ${input.currency},
-        ${RideStatus.REQUESTED}
+        ${RideStatus.REQUESTED},
+        ${input.discountPercent ?? null},
+        ${input.discountedAmount ?? null},
+        ${input.discountTokenId ?? null}
       )
       RETURNING
         "id",
@@ -86,6 +98,9 @@ const PrismaRideRepository: RideRepo = {
         "fareAmount",
         "surge",
         "currency",
+        "discountPercent",
+        "discountedAmount",
+        "discountTokenId",
         "startedAt",
         "completedAt",
         "createdAt",
@@ -110,6 +125,9 @@ const PrismaRideRepository: RideRepo = {
         r."fareAmount",
         r."surge",
         r."currency",
+        r."discountPercent",
+        r."discountedAmount",
+        r."discountTokenId",
         r."startedAt",
         r."completedAt",
         r."createdAt",
@@ -165,6 +183,9 @@ const PrismaRideRepository: RideRepo = {
         r."fareAmount",
         r."surge",
         r."currency",
+        r."discountPercent",
+        r."discountedAmount",
+        r."discountTokenId",
         r."startedAt",
         r."completedAt",
         r."createdAt",
@@ -199,6 +220,9 @@ const MemoryRideRepository: RideRepo = {
       fareAmount: input.fareAmount,
       surge: input.surge,
       currency: input.currency,
+      discountPercent: input.discountPercent ?? null,
+      discountedAmount: input.discountedAmount ?? null,
+      discountTokenId: input.discountTokenId ?? null,
       startedAt: null,
       completedAt: null,
       createdAt: new Date()
@@ -248,6 +272,9 @@ function mapPrismaRide(row: RideRow): RideRecord {
     fareAmount: row.fareAmount,
     surge: Number(row.surge),
     currency: row.currency,
+    discountPercent: row.discountPercent,
+    discountedAmount: row.discountedAmount,
+    discountTokenId: row.discountTokenId,
     pickup: { lat: Number(row.pickupLat), lon: Number(row.pickupLon) },
     dest: { lat: Number(row.destLat), lon: Number(row.destLon) },
     startedAt: row.startedAt,
@@ -293,6 +320,9 @@ function mapMemoryRide(ride: MemoryRide): RideRecord {
     fareAmount: ride.fareAmount,
     surge: ride.surge,
     currency: ride.currency,
+    discountPercent: ride.discountPercent,
+    discountedAmount: ride.discountedAmount,
+    discountTokenId: ride.discountTokenId,
     pickup: ride.pickup,
     dest: ride.dest,
     startedAt: ride.startedAt,

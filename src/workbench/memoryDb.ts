@@ -39,6 +39,9 @@ export type MemoryRide = {
   fareAmount: number
   surge: number
   currency: string
+  discountPercent: number | null
+  discountedAmount: number | null
+  discountTokenId: string | null
   startedAt: Date | null
   completedAt: Date | null
   createdAt: Date
@@ -54,6 +57,32 @@ export type MemoryPaymentIntent = {
   updatedAt: Date
 }
 
+export type MemoryAdSession = {
+  id: string
+  riderId: string
+  percent: number
+  provider: string
+  status: 'OFFERED' | 'WATCHING' | 'COMPLETED' | 'CANCELLED'
+  startedAt: Date | null
+  completedAt: Date | null
+  playbackEvents: Record<string, string>
+  expiresAt: Date
+  createdAt: Date
+  tokenId: string | null
+}
+
+export type MemoryDiscountToken = {
+  id: string
+  riderId: string
+  percent: number
+  state: 'ACTIVE' | 'REDEEMED' | 'EXPIRED' | 'REVOKED'
+  quoteId: string | null
+  expiresAt: Date
+  redeemedRideId: string | null
+  createdAt: Date
+  sessionId: string
+}
+
 export type MemoryDb = {
   users: Map<string, MemoryUser>
   drivers: Map<string, MemoryDriver>
@@ -61,6 +90,8 @@ export type MemoryDb = {
   rides: Map<string, MemoryRide>
   paymentIntents: Map<string, MemoryPaymentIntent>
   driverLocations: Map<string, { lat: number; lon: number; available: boolean }>
+  adSessions: Map<string, MemoryAdSession>
+  discountTokens: Map<string, MemoryDiscountToken>
 }
 
 let memoryDb: MemoryDb | null = null
@@ -73,7 +104,9 @@ export function initMemoryDb({ seed = true } = {}) {
       vehicles: new Map(),
       rides: new Map(),
       paymentIntents: new Map(),
-      driverLocations: new Map()
+      driverLocations: new Map(),
+      adSessions: new Map(),
+      discountTokens: new Map()
     }
   } else {
     resetMemoryDb({ seed: false })
@@ -96,6 +129,8 @@ export function resetMemoryDb({ seed = true } = {}) {
   memoryDb.rides.clear()
   memoryDb.paymentIntents.clear()
   memoryDb.driverLocations.clear()
+  memoryDb.adSessions.clear()
+  memoryDb.discountTokens.clear()
   if (seed) seedMemoryDb()
 }
 
