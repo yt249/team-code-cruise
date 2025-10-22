@@ -24,6 +24,7 @@ export function BookingProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [tripProgress, setTripProgress] = useState(0);
+  const [driverInterval, setDriverInterval] = useState(null);
 
   // Get fare quote
   const getFareQuote = async (pickup, dropoff) => {
@@ -68,7 +69,11 @@ export function BookingProvider({ children }) {
       const updatedBooking = await mockBookingService.requestDriver(bookingData);
       setBooking(updatedBooking);
       setDriver(updatedBooking.driver);
-      setDriverLocation(updatedBooking.driver.location);
+
+      // CRITICAL: Set driver's initial location immediately
+      const initialLocation = updatedBooking.driver.location;
+      console.log('Setting initial driver location:', initialLocation);
+      setDriverLocation(initialLocation);
 
       // Start trip simulation
       startTripSimulation(updatedBooking);
@@ -159,11 +164,19 @@ export function BookingProvider({ children }) {
 
     setLoading(true);
     try {
+      // Clear any active driver movement intervals
+      if (driverInterval) {
+        clearInterval(driverInterval);
+        setDriverInterval(null);
+        console.log('Cleared driver movement interval');
+      }
+
       const cancelledBooking = await mockBookingService.cancelBooking(booking);
       setBooking(cancelledBooking);
       setDriver(null);
       setTrip(null);
       setDriverLocation(null);
+      setTripProgress(0);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -171,8 +184,20 @@ export function BookingProvider({ children }) {
     }
   };
 
+  // Clear quote (useful when user changes route)
+  const clearQuote = () => {
+    setQuote(null);
+    setError(null);
+  };
+
   // Reset all state
   const reset = () => {
+    // Clear any active intervals
+    if (driverInterval) {
+      clearInterval(driverInterval);
+      setDriverInterval(null);
+    }
+
     setPickupText('');
     setDropoffText('');
     setQuote(null);
@@ -198,6 +223,7 @@ export function BookingProvider({ children }) {
     loading,
     error,
     getFareQuote,
+    clearQuote,
     createBooking,
     requestDriver,
     startTrip,

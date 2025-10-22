@@ -83,9 +83,21 @@ export function getNearestDriver(pickupLocation) {
   const available = mockDrivers.filter(d => d.available);
   if (available.length === 0) return null;
 
-  // In a real app, we'd calculate distance
-  // For mock, just return a random available driver
-  return available[Math.floor(Math.random() * available.length)];
+  // Get a random available driver
+  const selectedDriver = available[Math.floor(Math.random() * available.length)];
+
+  // Place driver near the pickup location (within 0.01 degrees ~= 1km)
+  const nearbyDriver = {
+    ...selectedDriver,
+    location: {
+      lat: pickupLocation.lat + (Math.random() - 0.5) * 0.02,
+      lng: pickupLocation.lng + (Math.random() - 0.5) * 0.02
+    }
+  };
+
+  console.log('Assigned driver near pickup:', nearbyDriver.location, 'Pickup:', pickupLocation);
+
+  return nearbyDriver;
 }
 
 // Function to simulate driver movement using Google Directions API
@@ -93,10 +105,12 @@ export function simulateDriverMovement(driver, destination, callback) {
   // Check if Google Maps is loaded
   if (!window.google || !window.google.maps) {
     console.error('Google Maps not loaded');
-    return null;
+    return fallbackMovement(driver, destination, callback);
   }
 
   const directionsService = new window.google.maps.DirectionsService();
+
+  console.log('Starting driver movement simulation from', driver.location, 'to', destination);
 
   // Get actual route from Directions API
   directionsService.route(
@@ -121,6 +135,8 @@ export function simulateDriverMovement(driver, destination, callback) {
           lat: point.lat(),
           lng: point.lng()
         }));
+
+        console.log('Got route with', waypoints.length, 'waypoints');
 
         // Simulate movement along the path
         const totalSteps = 30; // Number of position updates
@@ -149,23 +165,24 @@ export function simulateDriverMovement(driver, destination, callback) {
             };
           }
 
+          console.log('Driver moving to:', newLocation, 'progress:', progress);
           callback(newLocation, progress);
 
           if (currentStep >= totalSteps) {
             clearInterval(interval);
+            console.log('Driver movement complete');
           }
         }, 1000); // Update every second
-
-        return interval;
       } else {
         console.error('Directions request failed:', status);
         // Fallback to simple linear movement
-        return fallbackMovement(driver, destination, callback);
+        fallbackMovement(driver, destination, callback);
       }
     }
   );
 
-  return null; // Will be returned by the async callback
+  // Return a placeholder - the actual interval is created in the async callback
+  return 'pending';
 }
 
 // Fallback movement if Directions API fails

@@ -412,3 +412,274 @@ a:focus-visible {
     width: auto;
   }
 }
+
+/* Google Places Autocomplete Styling */
+/* Override Google's default styles to match our dark theme */
+
+.pac-container {
+  background-color: var(--color-surface) !important;
+  border: 2px solid var(--color-border) !important;
+  border-top: none !important;
+  border-radius: 0 0 var(--radius-md) var(--radius-md) !important;
+  box-shadow: var(--shadow-lg) !important;
+  font-family: var(--font-family) !important;
+  margin-top: 2px !important;
+  z-index: 1050 !important;
+}
+
+.pac-container:after {
+  display: none !important;
+}
+
+.pac-item {
+  background-color: var(--color-surface) !important;
+  border-top: 1px solid var(--color-border) !important;
+  color: var(--color-text) !important;
+  cursor: pointer !important;
+  padding: 12px 14px !important;
+  font-size: var(--font-size-base) !important;
+  line-height: 1.5 !important;
+  transition: all var(--transition-fast) !important;
+}
+
+.pac-item:hover,
+.pac-item-selected {
+  background-color: rgba(255, 214, 10, 0.1) !important;
+  border-left: 3px solid var(--color-primary) !important;
+  padding-left: 11px !important;
+}
+
+.pac-item-query {
+  color: var(--color-text) !important;
+  font-weight: var(--font-weight-medium) !important;
+  padding-right: 4px !important;
+}
+
+.pac-matched {
+  color: var(--color-primary) !important;
+  font-weight: var(--font-weight-bold) !important;
+}
+
+.pac-icon {
+  background-image: none !important;
+  background-color: rgba(255, 214, 10, 0.15) !important;
+  border-radius: var(--radius-sm) !important;
+  width: 24px !important;
+  height: 24px !important;
+  margin-right: 12px !important;
+  margin-top: 4px !important;
+}
+
+.pac-icon:before {
+  content: '📍';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+/* Hover glow effect */
+.pac-item:hover .pac-icon {
+  background-color: rgba(255, 214, 10, 0.25) !important;
+  box-shadow: 0 0 8px rgba(255, 214, 10, 0.3) !important;
+}
+
+/* "Powered by Google" logo styling */
+.pac-logo:after {
+  opacity: 0.5 !important;
+  filter: brightness(0.7) !important;
+}
+
+/* Google Maps Controls Styling */
+/* Style zoom buttons, fullscreen, and other map controls to match dark theme */
+
+/* Zoom control container - make background transparent */
+.gm-bundled-control {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.gm-bundled-control > div {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Individual zoom buttons and divider */
+.gm-bundled-control .gm-control-active {
+  background-color: var(--color-surface) !important;
+  box-shadow: var(--shadow-md) !important;
+  margin: 2px 0 !important;
+}
+
+.gm-bundled-control .gm-control-active:first-child {
+  border-radius: var(--radius-md) var(--radius-md) 0 0 !important;
+}
+
+.gm-bundled-control .gm-control-active:last-child {
+  border-radius: 0 0 var(--radius-md) var(--radius-md) !important;
+}
+
+/* Divider line between zoom buttons */
+.gm-bundled-control > div > div:not(.gm-control-active) {
+  background-color: var(--color-border) !important;
+  margin: 0 5px !important;
+}
+
+/* Zoom controls (+/-) and other buttons */
+.gm-control-active,
+.gm-svpc,
+.gm-fullscreen-control {
+  background-color: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  box-shadow: var(--shadow-md) !important;
+  transition: all var(--transition-fast) !important;
+}
+
+.gm-control-active:hover,
+.gm-svpc:hover,
+.gm-fullscreen-control:hover {
+  background-color: var(--color-surface-hover) !important;
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 8px rgba(255, 214, 10, 0.3) !important;
+}
+
+/* Zoom button icons (+/-) */
+.gm-control-active > img {
+  filter: brightness(0) invert(1) !important;
+  opacity: 0.9 !important;
+}
+
+.gm-control-active:hover > img {
+  filter: brightness(0) invert(1) !important;
+  opacity: 1 !important;
+}
+
+/* Street View pegman */
+.gm-svpc > div {
+  filter: brightness(0) invert(1) !important;
+}
+
+/* Fullscreen button icon */
+.gm-fullscreen-control > img {
+  filter: brightness(0) invert(1) !important;
+}
+
+/* Map type controls (satellite/terrain buttons) */
+.gm-style .gm-style-mtc {
+  background-color: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+.gm-style .gm-style-mtc > button {
+  background-color: var(--color-surface) !important;
+  color: var(--color-text) !important;
+  font-family: var(--font-family) !important;
+  border: none !important;
+}
+
+.gm-style .gm-style-mtc > button:hover {
+  background-color: var(--color-surface-hover) !important;
+  color: var(--color-primary) !important;
+}
+
+/* Copyright and Terms of Use links */
+.gm-style .gm-style-cc {
+  background-color: rgba(10, 10, 10, 0.85) !important;
+  backdrop-filter: blur(8px) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 6px 10px !important;
+  margin: 4px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Remove light grey background from copyright text container */
+.gm-style .gm-style-cc > div {
+  background-color: transparent !important;
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.gm-style .gm-style-cc > div > div {
+  background-color: transparent !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+}
+
+.gm-style .gm-style-cc a,
+.gm-style .gm-style-cc span,
+.gm-style .gm-style-cc button {
+  color: var(--color-text-muted) !important;
+  font-family: var(--font-family) !important;
+  font-size: 10px !important;
+  text-decoration: none !important;
+  background-color: transparent !important;
+}
+
+.gm-style .gm-style-cc a:hover {
+  color: var(--color-primary) !important;
+  text-decoration: underline !important;
+}
+
+/* Bottom attribution container */
+.gm-style .gm-style-cc + div,
+.gm-style-cc {
+  background-color: rgba(10, 10, 10, 0.85) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+/* Scale bar */
+.gm-style .gm-style-cc .gmnoprint > div {
+  background-color: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-text) !important;
+}
+
+/* Remove white backgrounds from control containers */
+.gmnoprint {
+  background-color: transparent !important;
+}
+
+/* Infowindow (popup) styling */
+.gm-style .gm-style-iw-c {
+  background-color: var(--color-surface) !important;
+  border: 2px solid var(--color-border) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.gm-style .gm-style-iw-d {
+  color: var(--color-text) !important;
+  font-family: var(--font-family) !important;
+}
+
+.gm-style .gm-style-iw-tc {
+  filter: brightness(0.2) !important;
+}
+
+/* Close button in infowindow */
+.gm-ui-hover-effect {
+  background-color: var(--color-surface-hover) !important;
+  opacity: 1 !important;
+}
+
+.gm-ui-hover-effect > span {
+  background-color: var(--color-text) !important;
+}
+
+/* Mobile: Reposition fullscreen button to bottom left */
+@media (max-width: 768px) {
+  .gm-fullscreen-control {
+    position: fixed !important;
+    bottom: calc(50vh + 16px) !important;
+    left: 16px !important;
+    right: auto !important;
+    top: auto !important;
+    z-index: 5 !important;
+  }
+}

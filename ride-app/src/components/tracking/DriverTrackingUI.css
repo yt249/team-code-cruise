@@ -327,7 +327,21 @@
 
 /* Responsive - Mobile */
 @media (max-width: 768px) {
+  .split-screen-layout {
+    position: relative;
+  }
+
+  .map-section {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    z-index: 1;
+  }
+
   .route-bar {
+    top: var(--spacing-md);
     left: var(--spacing-md);
     right: var(--spacing-md);
     flex-direction: column;
@@ -341,20 +355,36 @@
   }
 
   .tracking-sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
     width: 100%;
-    padding: var(--spacing-lg);
+    height: 33.33vh;
+    max-height: 33.33vh;
+    padding: var(--spacing-md);
+    border-left: none;
+    border-top: 2px solid var(--color-primary);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    z-index: 10;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.9);
+    gap: var(--spacing-md);
   }
 
   .driver-card-new {
-    flex-direction: column;
-    text-align: center;
+    padding: var(--spacing-md);
+  }
+
+  .driver-avatar-new {
+    width: 52px;
+    height: 52px;
+    font-size: 22px;
   }
 
   .driver-eta-new {
-    text-align: center;
+    padding: var(--spacing-sm) var(--spacing-md);
   }
 
   .eta-value-new {
-    font-size: 28px;
+    font-size: 24px;
   }
 }

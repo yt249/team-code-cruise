@@ -8,7 +8,8 @@ export default function NewBookingUI({ onProceedToPayment }) {
     quote,
     loading,
     error,
-    getFareQuote
+    getFareQuote,
+    clearQuote
   } = useBooking();
 
   const [pickupAddress, setPickupAddress] = useState('');
@@ -106,6 +107,14 @@ export default function NewBookingUI({ onProceedToPayment }) {
 
     return () => clearInterval(checkInterval);
   }, []);
+
+  // Clear quote when pickup or dropoff location changes
+  useEffect(() => {
+    if (quote) {
+      clearQuote();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pickupLocation, dropoffLocation]);
 
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {

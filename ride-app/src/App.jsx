@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BookingProvider } from './context/BookingContext';
 import { AdProvider } from './context/AdContext';
 import { useBooking } from './context/BookingContext';
@@ -11,9 +11,19 @@ import TripCompletedUI from './components/TripCompleted/TripCompletedUI';
 import './App.css';
 
 function AppContent() {
-  const { booking, trip, createBooking, requestDriver } = useBooking();
+  const { booking, trip, createBooking, requestDriver, reset } = useBooking();
   const [currentView, setCurrentView] = useState('landing'); // landing, booking, payment, tracking, completed
   const [tripData, setTripData] = useState(null);
+
+  // Handle ride cancellation - redirect to landing page
+  useEffect(() => {
+    if (booking && booking.status === 'Cancelled' && currentView === 'tracking') {
+      console.log('Ride cancelled, redirecting to landing');
+      reset();
+      setTripData(null);
+      setCurrentView('landing');
+    }
+  }, [booking, currentView, reset]);
 
   const handleGetStarted = () => {
     setCurrentView('booking');

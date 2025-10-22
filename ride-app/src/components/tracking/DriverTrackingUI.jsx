@@ -66,6 +66,9 @@ export default function DriverTrackingUI() {
     return null;
   }
 
+  console.log('DriverTrackingUI - driverLocation:', driverLocation);
+  console.log('DriverTrackingUI - trip state:', trip.state);
+
   const pickupLocation = booking.pickup;
   const destinationLocation = booking.dropoff;
 
