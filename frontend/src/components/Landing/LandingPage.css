@@ -12,9 +12,9 @@
 /* Logout Button */
 .logout-button {
   position: fixed;
-  top: 24px;
+  bottom: 24px;
   right: 24px;
-  z-index: 100;
+  z-index: 1000;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -43,6 +43,30 @@
 
 .logout-button:hover svg {
   transform: translateX(2px);
+}
+
+/* Mobile responsive logout button - small circular icon */
+@media (max-width: 768px) {
+  .logout-button {
+    top: 12px;
+    right: 12px;
+    bottom: auto;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    font-size: 0;
+    gap: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logout-button svg {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+  }
 }
 
 .landing-gradient-bg {

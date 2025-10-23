@@ -40,15 +40,29 @@ export function AdProvider({ children }) {
     }
   };
 
-  // Start ad session (percent: 10-15)
-  const startAdSession = async (percent = 10) => {
+  // Start ad session (percent: 10-15, baseFare: ride cost)
+  const startAdSession = async (percent = 10, baseFare = 0) => {
     setLoading(true);
     setError(null);
     try {
       const session = await adService.createSession(percent);
-      setAdSession(session);
+
+      // Enrich session with ad data and fare calculations
+      const enrichedSession = {
+        ...session,
+        baseFare: baseFare,
+        discountAmount: baseFare * (percent / 100),
+        finalFare: baseFare - (baseFare * (percent / 100)),
+        ad: {
+          videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
+          duration: 30,
+          advertiser: session.provider || 'CodeCruise Ads'
+        }
+      };
+
+      setAdSession(enrichedSession);
       setShowAdOffer(true);
-      return session;
+      return enrichedSession;
     } catch (err) {
       console.error('Failed to start ad session:', err);
       setError(err.message);

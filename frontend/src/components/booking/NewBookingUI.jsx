@@ -45,7 +45,6 @@ export default function NewBookingUI({ onProceedToPayment }) {
           setCurrentLocation({ lat, lng });
         },
         (error) => {
-          console.log('Location access denied or unavailable:', error);
           // Set a default location (e.g., New York City) if geolocation fails
           setCurrentLocation({ lat: 40.7580, lng: -73.9855 });
         }

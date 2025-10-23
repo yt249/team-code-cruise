@@ -185,7 +185,13 @@ test('quotes cannot be reused after booking a ride', async () => {
 
 test('assignDriver keeps ride in requested status when no drivers are available', async () => {
   const { rider, driver, pickup } = seededEntities()
-  await DriverRepository.setAvailability(driver.id, false)
+
+  // Make ALL drivers unavailable, not just the first one
+  const db = getMemoryDb()
+  for (const driverId of db.drivers.keys()) {
+    await DriverRepository.setAvailability(driverId, false)
+  }
+
   const dest = { lat: pickup.lat + 0.012, lon: pickup.lon + 0.003 }
 
   const quote = await QuoteService.getQuote(pickup, dest, { riderId: rider.id })

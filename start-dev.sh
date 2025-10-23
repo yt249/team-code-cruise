@@ -36,6 +36,10 @@ cleanup() {
     kill $FRONTEND_PID 2>/dev/null || true
   fi
 
+  if [ ! -z "$TAIL_PID" ]; then
+    kill $TAIL_PID 2>/dev/null || true
+  fi
+
   echo -e "${GREEN}Shutdown complete${NC}"
   exit 0
 }
@@ -47,7 +51,7 @@ trap cleanup SIGINT SIGTERM
 echo -e "${CYAN}"
 echo "╔════════════════════════════════════════════════════╗"
 echo "║     CodeCruise Development Environment             ║"
-echo "║     Frontend + Backend + Logging                   ║"
+echo "║     Frontend + Backend + RideTimeoutService        ║"
 echo "╚════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
@@ -76,7 +80,15 @@ cd backend
 # Install dependencies if needed
 if [ ! -d "node_modules" ]; then
   echo -e "${YELLOW}Installing backend dependencies...${NC}"
-  pnpm install
+  pnpm install --silent
+  echo -e "${GREEN}✓ Backend dependencies installed${NC}"
+fi
+
+# Generate Prisma client if needed
+if [ ! -d "node_modules/.pnpm/@prisma+client@*/node_modules/@prisma/client" ]; then
+  echo -e "${YELLOW}Generating Prisma client...${NC}"
+  pnpm run prisma:gen
+  echo -e "${GREEN}✓ Prisma client generated${NC}"
 fi
 
 # Start backend in background with logging
@@ -90,9 +102,20 @@ cd ..
 
 # Wait for backend to be ready
 echo -e "${YELLOW}Waiting for backend to be ready...${NC}"
+BACKEND_READY=0
 for i in {1..30}; do
-  if curl -s http://localhost:3000/login > /dev/null 2>&1; then
+  # Check if process is still running
+  if ! kill -0 $BACKEND_PID 2>/dev/null; then
+    echo -e "${RED}Error: Backend process died${NC}"
+    echo -e "${YELLOW}Last 20 lines of log:${NC}"
+    tail -20 "$BACKEND_LOG"
+    exit 1
+  fi
+
+  # Check if port 3000 is listening
+  if lsof -Pi :3000 -sTCP:LISTEN -t >/dev/null 2>&1; then
     echo -e "${GREEN}✓ Backend is ready!${NC}\n"
+    BACKEND_READY=1
     break
   fi
 
@@ -104,6 +127,11 @@ for i in {1..30}; do
 
   sleep 1
 done
+
+if [ $BACKEND_READY -eq 0 ]; then
+  echo -e "${RED}Error: Backend not ready after 30 seconds${NC}"
+  cleanup
+fi
 
 # Start Frontend
 echo -e "${MAGENTA}Starting Frontend...${NC}"
@@ -137,12 +165,14 @@ echo "╠═══════════════════════�
 echo "║  Backend Log:  $BACKEND_LOG"
 echo "║  Frontend Log: $FRONTEND_LOG"
 echo "╠════════════════════════════════════════════════════╣"
+echo "║  Login: rider@example.com / ride1234               ║"
+echo "╠════════════════════════════════════════════════════╣"
 echo "║  Press Ctrl+C to stop all services                 ║"
 echo "╚════════════════════════════════════════════════════╝"
 echo -e "${NC}\n"
 
 # Show live backend logs
-echo -e "${CYAN}Showing live backend activity...${NC}"
+echo -e "${CYAN}Showing live backend activity (including RideTimeout logs)...${NC}"
 echo -e "${YELLOW}(Frontend logs are in $FRONTEND_LOG)${NC}\n"
 
 # Tail backend logs

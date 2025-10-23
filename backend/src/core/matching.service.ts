@@ -24,18 +24,14 @@ export class MatchingService {
     const ride = await RideRepository.findById(rideId)
     if (!ride) throw Object.assign(new Error('Ride not found'), { status: 404 })
 
-    console.log('[Matching] Finding drivers near:', ride.pickup)
     await RideRepository.update(ride.id, { status: RideStatus.MATCHING })
     const nearby = await DriverRepository.findNearby(ride.pickup, 15) // 15km radius
-    console.log('[Matching] Found nearby drivers:', nearby.length)
     const choice = nearby[0]
     if (!choice) {
-      console.log('[Matching] No drivers found, reverting to REQUESTED')
       await RideRepository.update(ride.id, { status: RideStatus.REQUESTED })
       return RideRepository.findById(ride.id)
     }
 
-    console.log('[Matching] Assigning driver:', choice.name, choice.id)
     await DriverRepository.setAvailability(choice.id, false)
 
     try {

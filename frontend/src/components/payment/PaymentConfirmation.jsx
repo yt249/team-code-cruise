@@ -1,15 +1,30 @@
 import { useState, useRef, useEffect } from 'react';
+import { useAd } from '../../context/AdContext';
+import { adService } from '../../services/advertisementService';
 import './PaymentConfirmation.css';
 
 export default function PaymentConfirmation({ tripData, onConfirm, onCancel }) {
   const [selectedPayment, setSelectedPayment] = useState('card');
-  const [showAdOffer, setShowAdOffer] = useState(true);
-  const [discount, setDiscount] = useState(null);
-  const [watchingAd, setWatchingAd] = useState(false);
-  const [adProgress, setAdProgress] = useState(0);
-  const adTimerRef = useRef(null);
+
+  // Use AdContext for backend integration
+  const {
+    isEligible,
+    adSession,
+    showAdOffer,
+    adPlaying,
+    adProgress,
+    discountToken,
+    checkEligibility,
+    startAdSession,
+    playAd,
+    updateAdProgress,
+    completeAd,
+    skipAd,
+    closeAdOffer
+  } = useAd();
 
   const { pickup, dropoff, quote, tripDistance } = tripData;
+  const videoRef = useRef(null);
 
   const paymentMethods = [
     { id: 'card', name: 'Credit Card', icon: '💳', details: '•••• 4242' },
@@ -18,40 +33,140 @@ export default function PaymentConfirmation({ tripData, onConfirm, onCancel }) {
     { id: 'cash', name: 'Cash', icon: '💵', details: 'Pay with cash' }
   ];
 
-  const videoRef = useRef(null);
-
-  const handleWatchAd = () => {
-    setWatchingAd(true);
-    setAdProgress(0);
-  };
-
-  const handleVideoTimeUpdate = () => {
-    if (!videoRef.current) return;
-    const progress = (videoRef.current.currentTime / videoRef.current.duration) * 100;
-    setAdProgress(progress);
-  };
-
-  const handleVideoEnded = () => {
-    // Apply discount after ad completes
-    const discountAmount = (quote.fare * 0.12).toFixed(2);
-    setDiscount(parseFloat(discountAmount));
-    setWatchingAd(false);
-    setShowAdOffer(false);
-  };
-
+  // Check ad eligibility when component mounts (but don't create session yet)
   useEffect(() => {
-    if (watchingAd && videoRef.current) {
+    const initAd = async () => {
+      try {
+        // Only check eligibility, don't create session until user clicks "Watch Ad"
+        const result = await checkEligibility();
+      } catch (err) {
+        console.error('Failed to check ad eligibility:', err);
+      }
+    };
+
+    initAd();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quote]);
+
+  // Track if we're initiating an ad watch
+  const [initiatingAd, setInitiatingAd] = useState(false);
+
+  // Handle watch ad button click
+  const handleWatchAd = async () => {
+    try {
+      setInitiatingAd(true);
+      // Create ad session with discount percentage and base fare
+      await startAdSession(12, quote.fare);
+      // playAd() will be called automatically by useEffect below
+    } catch (err) {
+      console.error('Failed to start ad:', err);
+      alert('Failed to start ad: ' + err.message);
+      setInitiatingAd(false);
+    }
+  };
+
+  // Auto-play ad when session is created after user clicks "Watch Ad"
+  useEffect(() => {
+    if (initiatingAd && adSession && !adPlaying) {
+      playAd();
+      setInitiatingAd(false);
+    }
+  }, [initiatingAd, adSession, adPlaying, playAd]);
+
+  // Track which checkpoints have been sent
+  const checkpointsSent = useRef({
+    start: false,
+    '25%': false,
+    '50%': false,
+    '75%': false
+  });
+
+  // Handle video time update and send checkpoints
+  const handleVideoTimeUpdate = async () => {
+    if (!videoRef.current || !adSession) return;
+
+    const currentTime = videoRef.current.currentTime;
+    const duration = videoRef.current.duration;
+    const progress = (currentTime / duration) * 100;
+
+    // Update progress in context
+    updateAdProgress(progress);
+
+    // Send checkpoint events to backend
+    try {
+      if (!checkpointsSent.current.start && currentTime > 0) {
+        await adService.recordStart(adSession.sessionId);
+        checkpointsSent.current.start = true;
+      }
+      if (!checkpointsSent.current['25%'] && progress >= 25) {
+        await adService.recordQuartile(adSession.sessionId, '25%');
+        checkpointsSent.current['25%'] = true;
+      }
+      if (!checkpointsSent.current['50%'] && progress >= 50) {
+        await adService.recordQuartile(adSession.sessionId, '50%');
+        checkpointsSent.current['50%'] = true;
+      }
+      if (!checkpointsSent.current['75%'] && progress >= 75) {
+        await adService.recordQuartile(adSession.sessionId, '75%');
+        checkpointsSent.current['75%'] = true;
+      }
+    } catch (err) {
+      console.error('Failed to record playback checkpoint:', err);
+    }
+  };
+
+  // Handle video ended
+  const handleVideoEnded = async () => {
+    try {
+      // Send final "complete" checkpoint
+      if (adSession?.sessionId) {
+        await adService.recordComplete(adSession.sessionId);
+      }
+      // Complete the ad session and get discount token
+      await completeAd();
+    } catch (err) {
+      console.error('Failed to complete ad:', err);
+    }
+  };
+
+  // Handle skip ad
+  const handleSkipAd = () => {
+    skipAd();
+  };
+
+  // Auto-play video when ad starts playing
+  useEffect(() => {
+    if (adPlaying && videoRef.current) {
       videoRef.current.play().catch(err => {
         console.error('Error playing video:', err);
       });
     }
-  }, [watchingAd]);
+  }, [adPlaying]);
 
+  // Reset checkpoints when new ad session starts
+  useEffect(() => {
+    if (adSession) {
+      checkpointsSent.current = {
+        start: false,
+        '25%': false,
+        '50%': false,
+        '75%': false
+      };
+    }
+  }, [adSession]);
 
-  const finalAmount = discount ? (quote.fare - discount).toFixed(2) : quote.fare.toFixed(2);
+  // Calculate final amount with discount if available
+  const discountAmount = discountToken && adSession ? adSession.discountAmount : 0;
+  const finalAmount = (quote.fare - discountAmount).toFixed(2);
 
-  // Watching ad view
-  if (watchingAd) {
+  // Watching ad view - use backend ad video
+  if (adPlaying && adSession) {
+    const timeRemaining = adSession.ad.duration ?
+      Math.max(0, Math.round((100 - adProgress) / 100 * adSession.ad.duration)) :
+      Math.max(0, Math.round((100 - adProgress) / 100 * 30));
+
+    const discountPercentage = adSession.discountPercentage || 12;
+
     return (
       <div className="ad-modal-overlay">
         <div className="ad-modal-container">
@@ -61,7 +176,7 @@ export default function PaymentConfirmation({ tripData, onConfirm, onCancel }) {
               <span>Advertisement</span>
             </div>
             <div className="ad-timer">
-              {Math.max(0, Math.round((100 - adProgress) / 100 * 30))}s remaining
+              {timeRemaining}s remaining
             </div>
           </div>
 
@@ -75,7 +190,7 @@ export default function PaymentConfirmation({ tripData, onConfirm, onCancel }) {
               autoPlay
               playsInline
             >
-              <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4" type="video/mp4" />
+              <source src={adSession.ad.videoUrl} type="video/mp4" />
               Your browser does not support the video tag.
             </video>
           </div>
@@ -85,7 +200,7 @@ export default function PaymentConfirmation({ tripData, onConfirm, onCancel }) {
               <div className="ad-progress-fill" style={{ width: `${adProgress}%` }}></div>
             </div>
             <p className="ad-reward-text">
-              Watch until the end to save 12% on your ride!
+              Watch until the end to save {discountPercentage}% on your ride!
             </p>
           </div>
         </div>
@@ -151,19 +266,19 @@ export default function PaymentConfirmation({ tripData, onConfirm, onCancel }) {
             </div>
           </div>
 
-          {/* Ad Offer */}
-          {showAdOffer && (
+          {/* Ad Offer - show if eligible and no discount token yet */}
+          {isEligible && !discountToken && (
             <div className="ad-offer-card">
               <div className="ad-offer-icon">📺</div>
               <div className="ad-offer-content">
                 <h4>Save 12% on your ride!</h4>
-                <p>Watch a quick 30-second ad to reduce your fare</p>
+                <p>Watch a quick 30-second ad to reduce your fare by ${(quote.fare * 0.12).toFixed(2)}</p>
               </div>
               <div className="ad-offer-actions">
                 <button className="watch-ad-btn" onClick={handleWatchAd}>
                   Watch Ad
                 </button>
-                <button className="skip-ad-btn" onClick={() => setShowAdOffer(false)}>
+                <button className="skip-ad-btn" onClick={handleSkipAd}>
                   Skip
                 </button>
               </div>
@@ -201,10 +316,10 @@ export default function PaymentConfirmation({ tripData, onConfirm, onCancel }) {
                 <span>Base Fare</span>
                 <span>${quote.fare.toFixed(2)}</span>
               </div>
-              {discount && (
+              {discountToken && discountAmount > 0 && (
                 <div className="fare-item discount-item">
-                  <span>Ad Discount (12%)</span>
-                  <span>-${discount.toFixed(2)}</span>
+                  <span>Ad Discount ({adSession?.discountPercentage || 12}%)</span>
+                  <span>-${discountAmount.toFixed(2)}</span>
                 </div>
               )}
               <div className="fare-item total-fare">
@@ -214,8 +329,8 @@ export default function PaymentConfirmation({ tripData, onConfirm, onCancel }) {
             </div>
           </div>
 
-          {/* Confirm Button */}
-          <button className="confirm-ride-button" onClick={() => onConfirm(selectedPayment, discount)}>
+          {/* Confirm Button - pass discount token to backend */}
+          <button className="confirm-ride-button" onClick={() => onConfirm(selectedPayment, discountToken)}>
             <span>Confirm Ride</span>
             <span className="button-amount">${finalAmount}</span>
           </button>

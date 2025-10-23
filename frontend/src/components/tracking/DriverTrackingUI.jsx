@@ -96,7 +96,6 @@ export default function DriverTrackingUI() {
     // Transition to ArrivedAtPickup state
     updateTripState('ArrivedAtPickup');
 
-    console.log('[DEV] Teleported driver to pickup location');
   };
 
   // [DEV ONLY] Teleport driver to destination and complete trip
@@ -119,15 +118,12 @@ export default function DriverTrackingUI() {
     // Complete the trip
     await completeRide();
 
-    console.log('[DEV] Teleported driver to destination and completed trip');
   };
 
   if (!driver || !trip || !booking) {
     return null;
   }
 
-  console.log('DriverTrackingUI - driverLocation:', driverLocation);
-  console.log('DriverTrackingUI - trip state:', trip.state);
 
   const pickupLocation = booking.pickup;
   const destinationLocation = booking.dropoff;

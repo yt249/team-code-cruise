@@ -103,7 +103,6 @@ export async function getRoutePath(origin, destination) {
             });
           });
 
-          console.log(`[GoogleMaps] Route path contains ${path.length} points`);
           resolve(path);
         } else {
           reject(new Error(`Directions API error: ${status}`));

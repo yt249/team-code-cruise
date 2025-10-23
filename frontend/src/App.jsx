@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { BookingProvider } from './context/BookingContext';
-import { AdProvider } from './context/AdContext';
+import { AdProvider, useAd } from './context/AdContext';
 import { useBooking } from './context/BookingContext';
 import LoginPage from './components/Landing/LoginPage';
 import LandingPage from './components/Landing/LandingPage';
@@ -10,18 +10,19 @@ import PaymentConfirmation from './components/payment/PaymentConfirmation';
 import FindingDriverModal from './components/FindingDriverModal/FindingDriverModal';
 import DriverTrackingUI from './components/tracking/DriverTrackingUI';
 import TripCompletedUI from './components/TripCompleted/TripCompletedUI';
+import { rideService } from './services/rideService';
 import './App.css';
 
 function AppContent() {
   const { isLoggedIn, loading: authLoading } = useAuth();
   const { booking, trip, requestRide, reset } = useBooking();
+  const { resetAd } = useAd();
   const [currentView, setCurrentView] = useState('landing'); // landing, booking, payment, tracking, completed
   const [tripData, setTripData] = useState(null);
 
   // Handle ride cancellation - redirect to landing page
   useEffect(() => {
     if (booking && booking.status === 'Cancelled' && currentView === 'tracking') {
-      console.log('Ride cancelled, redirecting to landing');
       reset();
       setTripData(null);
       setCurrentView('landing');
@@ -29,6 +30,7 @@ function AppContent() {
   }, [booking, currentView, reset]);
 
   const handleGetStarted = () => {
+    resetAd(); // Clear any previous ad state
     setCurrentView('booking');
   };
 
@@ -39,27 +41,44 @@ function AppContent() {
 
   const handleConfirmPayment = async (paymentMethod, discountToken) => {
     // Request ride with backend API (driver auto-assigned)
-    console.log('handleConfirmPayment called with:', { paymentMethod, discountToken });
-    console.log('tripData:', tripData);
+
+    // Change to tracking view before requesting ride (so FindingDriverModal can show)
+    setCurrentView('tracking');
 
     try {
       const pickup = tripData.pickup.location; // { lat, lng }
       const dropoff = tripData.dropoff.location; // { lat, lng }
       const pickupAddress = tripData.pickup.address;
       const dropoffAddress = tripData.dropoff.address;
-      const quoteId = tripData.quote.id;
+      let quoteId = tripData.quote.id;
       const tokenId = discountToken?.tokenId || null;
 
-      console.log('Requesting ride with:', { pickup, dropoff, quoteId, tokenId });
+      // If there's a discount token, request a NEW quote with the token
+      // This associates the token with the quote in the backend
+      if (tokenId) {
+        const newQuote = await rideService.getQuote(pickup, dropoff, tokenId);
+
+        // Update tripData with the new quote
+        setTripData({
+          ...tripData,
+          quote: newQuote
+        });
+
+        // Use the new quote ID (which has the discount token associated)
+        quoteId = newQuote.id;
+      }
+
 
       // Call backend API - driver is auto-assigned
       const result = await requestRide(pickup, dropoff, quoteId, tokenId, pickupAddress, dropoffAddress);
-      console.log('Ride requested successfully:', result);
 
-      setCurrentView('tracking');
+      // Clear ad state after successful booking (discount token consumed)
+      resetAd();
     } catch (err) {
       console.error('Failed to request ride:', err);
       alert('Failed to request ride: ' + err.message);
+      // Go back to payment on error
+      setCurrentView('payment');
     }
   };
 
@@ -68,6 +87,7 @@ function AppContent() {
   };
 
   const handleBackToLanding = () => {
+    resetAd(); // Clear ad state for new booking
     setTripData(null);
     setCurrentView('landing');
   };
@@ -140,8 +160,8 @@ function AppContent() {
         {renderView()}
       </main>
 
-      {/* Modals - FindingDriverModal only */}
-      <FindingDriverModal />
+      {/* Modals - FindingDriverModal only (don't show on payment screen) */}
+      {currentView !== 'payment' && <FindingDriverModal />}
     </div>
   );
 }

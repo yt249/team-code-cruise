@@ -3,7 +3,6 @@ import './Map.css';
 
 // Initialize the map callback globally
 window.initMap = function() {
-  console.log('Google Maps loaded');
 };
 
 export default function Map({
@@ -27,6 +26,8 @@ export default function Map({
   const routeRequestInProgressRef = useRef(false);
   const lastRenderedRouteRef = useRef(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const previousDriverPositionRef = useRef(null);
+  const [driverHeading, setDriverHeading] = useState(0);
 
   // Dark theme map styles
   const darkMapStyles = [
@@ -132,7 +133,10 @@ export default function Map({
           scaleControl: false,
           streetViewControl: false,
           rotateControl: false,
-          fullscreenControl: true,
+          fullscreenControl: !isMobile, // Enable on desktop only
+          fullscreenControlOptions: {
+            position: window.google.maps.ControlPosition.RIGHT_TOP
+          },
           // Add bottom padding on mobile so visual center is in top 2/3 area
           ...(mobilePadding && { padding: mobilePadding })
         });
@@ -154,23 +158,10 @@ export default function Map({
     return () => clearInterval(checkGoogleMaps);
   }, [currentLocation, pickup]);
 
-  // DEBUG: Log all props whenever they change
-  useEffect(() => {
-    console.log('🔍 MAP PROPS CHANGED:', {
-      pickup,
-      destination,
-      showRoute,
-      useDirections,
-      mapLoaded,
-      hasGoogleMaps: !!window.google,
-      hasMap: !!googleMapRef.current
-    });
-  }, [pickup, destination, showRoute, useDirections, mapLoaded]);
 
   // SEPARATE EFFECT: Render route (runs independently of markers)
   useEffect(() => {
     if (!mapLoaded || !googleMapRef.current || !window.google) {
-      console.log('Route effect: Map not ready');
       return;
     }
 
@@ -178,15 +169,12 @@ export default function Map({
 
     // If showRoute is false or locations are missing, clear any existing route
     if (!showRoute || !pickup || !destination) {
-      console.log('Route rendering skipped, clearing existing route:', { showRoute, pickup: !!pickup, destination: !!destination });
 
       if (directionsRendererRef.current) {
-        console.log('Clearing directions renderer because showRoute is false');
         directionsRendererRef.current.setMap(null);
         directionsRendererRef.current = null;
       }
       if (routePolylineRef.current) {
-        console.log('Clearing polyline because showRoute is false');
         routePolylineRef.current.setMap(null);
         routePolylineRef.current = null;
       }
@@ -199,31 +187,23 @@ export default function Map({
 
     // Skip if we already rendered this exact route
     if (lastRenderedRouteRef.current === routeKey && directionsRendererRef.current) {
-      console.log('⏭️ Same route already rendered, skipping');
       return;
     }
 
-    console.log('=== ROUTE RENDERING EFFECT ===');
-    console.log('Route key:', routeKey);
-    console.log('showRoute:', showRoute, 'pickup:', pickup, 'destination:', destination);
-    console.log('useDirections:', useDirections, 'routeCompleted:', routeCompleted);
 
     // ALWAYS clear any existing route FIRST (even if request in progress)
     // This ensures old routes disappear when user changes destination
     if (directionsRendererRef.current) {
-      console.log('Clearing old directions renderer');
       directionsRendererRef.current.setMap(null);
       directionsRendererRef.current = null;
     }
     if (routePolylineRef.current) {
-      console.log('Clearing old polyline');
       routePolylineRef.current.setMap(null);
       routePolylineRef.current = null;
     }
 
     // Skip if a request is already in progress (after clearing old route)
     if (routeRequestInProgressRef.current) {
-      console.log('⏳ Route request already in progress, skipping duplicate');
       return;
     }
 
@@ -243,7 +223,6 @@ export default function Map({
 
       directionsRendererRef.current = directionsRenderer;
 
-      console.log('Requesting Google Directions from', pickup, 'to', destination);
 
       directionsService.route(
         {
@@ -252,13 +231,11 @@ export default function Map({
           travelMode: window.google.maps.TravelMode.DRIVING,
         },
         (result, status) => {
-          console.log('Directions API response:', status);
           routeRequestInProgressRef.current = false;
 
           if (status === 'OK') {
             directionsRenderer.setDirections(result);
             lastRenderedRouteRef.current = routeKey;
-            console.log('✅ ROUTE RENDERED SUCCESSFULLY!');
           } else {
             console.error('❌ Directions request failed:', status);
             // Fallback polyline
@@ -272,13 +249,11 @@ export default function Map({
             polyline.setMap(map);
             routePolylineRef.current = polyline;
             lastRenderedRouteRef.current = routeKey;
-            console.log('Using fallback polyline');
           }
         }
       );
     } else {
       // Simple polyline
-      console.log('Using simple polyline (no directions)');
       const polyline = new window.google.maps.Polyline({
         path: [pickup, destination],
         geodesic: true,
@@ -289,7 +264,6 @@ export default function Map({
       polyline.setMap(map);
       routePolylineRef.current = polyline;
       lastRenderedRouteRef.current = routeKey;
-      console.log('✅ POLYLINE RENDERED!');
     }
   }, [mapLoaded, showRoute, pickup, destination, useDirections, routeCompleted]);
 
@@ -370,29 +344,67 @@ export default function Map({
 
     // Add or update driver marker with smooth animation (CAR ICON)
     if (driverPosition) {
-      console.log('Driver position received:', driverPosition);
+
+      // Calculate heading if we have a previous position
+      let currentHeading = driverHeading;
+      if (previousDriverPositionRef.current) {
+        const prev = previousDriverPositionRef.current;
+        const curr = driverPosition;
+
+        // Calculate bearing from previous to current position using Haversine formula
+        const lat1 = prev.lat * Math.PI / 180;
+        const lat2 = curr.lat * Math.PI / 180;
+        const dLon = (curr.lng - prev.lng) * Math.PI / 180;
+
+        const y = Math.sin(dLon) * Math.cos(lat2);
+        const x = Math.cos(lat1) * Math.sin(lat2) -
+                  Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+        currentHeading = Math.atan2(y, x) * 180 / Math.PI;
+
+        setDriverHeading(currentHeading);
+      }
+
+      // Store current position as previous for next update
+      previousDriverPositionRef.current = { ...driverPosition };
+
+      // Professional taxi icon using emoji with rotation
+      const carIcon = {
+        url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="50" height="50">
+            <g transform="translate(50,50) rotate(${currentHeading}) translate(-50,-50)">
+              <!-- Car body main -->
+              <rect x="30" y="20" width="40" height="60" rx="6" fill="#FFD60A" stroke="#000" stroke-width="2.5"/>
+              <!-- Front windshield -->
+              <rect x="35" y="25" width="30" height="15" rx="2" fill="#1a1a1a" opacity="0.5"/>
+              <!-- Rear windshield -->
+              <rect x="35" y="60" width="30" height="15" rx="2" fill="#1a1a1a" opacity="0.5"/>
+              <!-- Left wheels with white frame -->
+              <ellipse cx="28" cy="35" rx="5" ry="8" fill="#000" stroke="#FFF" stroke-width="1.5"/>
+              <ellipse cx="28" cy="65" rx="5" ry="8" fill="#000" stroke="#FFF" stroke-width="1.5"/>
+              <!-- Right wheels with white frame -->
+              <ellipse cx="72" cy="35" rx="5" ry="8" fill="#000" stroke="#FFF" stroke-width="1.5"/>
+              <ellipse cx="72" cy="65" rx="5" ry="8" fill="#000" stroke="#FFF" stroke-width="1.5"/>
+              <!-- Top taxi sign -->
+              <rect x="42" y="15" width="16" height="6" rx="2" fill="#000"/>
+              <!-- Direction indicator (triangle at front) -->
+              <polygon points="50,12 45,20 55,20" fill="#FF0000"/>
+            </g>
+          </svg>
+        `)}`,
+        scaledSize: new window.google.maps.Size(50, 50),
+        anchor: new window.google.maps.Point(25, 25)
+      };
+
       if (markersRef.current.driver) {
         // Smooth animation for existing marker
         const currentPos = markersRef.current.driver.getPosition();
         if (currentPos && (currentPos.lat() !== driverPosition.lat || currentPos.lng() !== driverPosition.lng)) {
-          console.log('Updating driver position');
           markersRef.current.driver.setPosition(driverPosition);
+          markersRef.current.driver.setIcon(carIcon);
         }
         bounds.extend(driverPosition);
       } else {
         // Create new driver marker with CAR ICON
-        console.log('Creating new driver marker (car icon) at', driverPosition);
-
-        // SVG car icon
-        const carIcon = {
-          path: 'M17.402,0H5.643C2.526,0,0,3.467,0,6.584v34.804c0,3.116,2.526,5.644,5.643,5.644h11.759c3.116,0,5.644-2.527,5.644-5.644 V6.584C23.044,3.467,20.518,0,17.402,0z M22.057,14.188v11.665l-2.729,0.351v-4.806L22.057,14.188z M20.625,10.773 c-1.016,3.9-2.219,8.51-2.219,8.51H4.638l-2.222-8.51C2.417,10.773,11.3,7.755,20.625,10.773z M3.748,21.713v4.492l-2.73-0.349 V14.502L3.748,21.713z M1.018,37.938V27.579l2.73,0.343v8.196L1.018,37.938z M2.575,40.882l2.218-3.336h13.771l2.219,3.336H2.575z M19.328,35.805v-7.872l2.729-0.355v10.048L19.328,35.805z',
-          fillColor: '#FFD60A',
-          fillOpacity: 1,
-          strokeColor: '#FFFFFF',
-          strokeWeight: 1,
-          scale: 0.6,
-          anchor: new window.google.maps.Point(11.5, 23),
-        };
 
         updateOrCreateMarker('driver', driverPosition, {
           icon: carIcon,
@@ -402,7 +414,6 @@ export default function Map({
         });
       }
     } else {
-      console.log('No driver position - driverPosition is', driverPosition);
     }
 
     // Add or update current location marker (blue dot)
@@ -440,7 +451,6 @@ export default function Map({
 
     // Add or update nearby driver markers
     if (nearbyDrivers && nearbyDrivers.length > 0) {
-      console.log('Rendering nearby drivers on map:', nearbyDrivers.length);
 
       // Remove markers for drivers that are no longer in the list
       const nearbyDriverIds = nearbyDrivers.map(d => `nearby-${d.id}`);
@@ -454,17 +464,27 @@ export default function Map({
       // Add or update markers for each nearby driver (CAR ICONS)
       nearbyDrivers.forEach(driver => {
         const markerKey = `nearby-${driver.id}`;
-        console.log(`Creating marker for driver ${driver.name} at`, driver.location);
 
-        // Gray car icon for nearby drivers
+        // Car icon for nearby drivers - gray version
         const nearbyCarIcon = {
-          path: 'M17.402,0H5.643C2.526,0,0,3.467,0,6.584v34.804c0,3.116,2.526,5.644,5.643,5.644h11.759c3.116,0,5.644-2.527,5.644-5.644 V6.584C23.044,3.467,20.518,0,17.402,0z M22.057,14.188v11.665l-2.729,0.351v-4.806L22.057,14.188z M20.625,10.773 c-1.016,3.9-2.219,8.51-2.219,8.51H4.638l-2.222-8.51C2.417,10.773,11.3,7.755,20.625,10.773z M3.748,21.713v4.492l-2.73-0.349 V14.502L3.748,21.713z M1.018,37.938V27.579l2.73,0.343v8.196L1.018,37.938z M2.575,40.882l2.218-3.336h13.771l2.219,3.336H2.575z M19.328,35.805v-7.872l2.729-0.355v10.048L19.328,35.805z',
-          fillColor: '#CCCCCC',
-          fillOpacity: 0.6,
-          strokeColor: '#999999',
-          strokeWeight: 0.8,
-          scale: 0.4,
-          anchor: new window.google.maps.Point(11.5, 23),
+          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="42" height="42">
+              <!-- Car body main -->
+              <rect x="30" y="20" width="40" height="60" rx="6" fill="#888888" stroke="#444" stroke-width="2"/>
+              <!-- Front windshield -->
+              <rect x="35" y="25" width="30" height="15" rx="2" fill="#1a1a1a" opacity="0.4"/>
+              <!-- Rear windshield -->
+              <rect x="35" y="60" width="30" height="15" rx="2" fill="#1a1a1a" opacity="0.4"/>
+              <!-- Left wheels with white frame -->
+              <ellipse cx="28" cy="35" rx="4" ry="7" fill="#333" stroke="#FFF" stroke-width="1.2"/>
+              <ellipse cx="28" cy="65" rx="4" ry="7" fill="#333" stroke="#FFF" stroke-width="1.2"/>
+              <!-- Right wheels with white frame -->
+              <ellipse cx="72" cy="35" rx="4" ry="7" fill="#333" stroke="#FFF" stroke-width="1.2"/>
+              <ellipse cx="72" cy="65" rx="4" ry="7" fill="#333" stroke="#FFF" stroke-width="1.2"/>
+            </svg>
+          `)}`,
+          scaledSize: new window.google.maps.Size(42, 42),
+          anchor: new window.google.maps.Point(21, 21)
         };
 
         updateOrCreateMarker(markerKey, driver.location, {
@@ -493,10 +513,8 @@ export default function Map({
     const hasMarkers = pickup || destination || currentLocation || (nearbyDrivers && nearbyDrivers.length > 0);
     const shouldFitBounds = hasMarkers && !userInteractedRef.current && !boundsFittedRef.current;
 
-    console.log('Bounds check:', { hasMarkers, shouldFitBounds, boundsEmpty: bounds.isEmpty(), nearbyDriversCount: nearbyDrivers?.length || 0 });
 
     if (shouldFitBounds && bounds && !bounds.isEmpty()) {
-      console.log('Fitting bounds to include all markers');
 
       // Add mobile padding to fitBounds so markers fit in visible area
       // On mobile: bottom UI is 1/3, so use 16.67% padding to center in top 2/3
@@ -516,7 +534,7 @@ export default function Map({
 
     // Reset boundsFitted when route changes (pickup/destination change)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapLoaded, pickup, destination, currentLocation, showRoute, routeCompleted, driverPosition, useDirections, nearbyDrivers]);
+  }, [mapLoaded, pickup, destination, currentLocation, showRoute, routeCompleted, driverPosition, useDirections, nearbyDrivers, driverHeading]);
 
   // Center map on driver during trip
   useEffect(() => {
@@ -525,7 +543,6 @@ export default function Map({
     const map = googleMapRef.current;
 
     // Smoothly pan to driver's location to keep them centered
-    console.log('Centering map on driver at:', driverPosition);
     map.panTo(driverPosition);
 
     // Keep a comfortable zoom level (not too close, not too far)
@@ -551,13 +568,11 @@ export default function Map({
 
     // We also do NOT reset routeRequestInProgressRef - let the API callback handle it
 
-    console.log('🔄 Route changed - flags reset');
   }, [pickup, destination]);
 
   // Reset bounds when nearby drivers change
   useEffect(() => {
     if (nearbyDrivers && nearbyDrivers.length > 0) {
-      console.log('Nearby drivers changed, resetting bounds');
       boundsFittedRef.current = false;
     }
   }, [nearbyDrivers]);

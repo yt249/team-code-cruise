@@ -218,6 +218,7 @@ const PrismaRideRepository: RideRepo = {
 const MemoryRideRepository: RideRepo = {
   async save(input) {
     const db = getMemoryDb()
+    const now = new Date()
     const ride: MemoryRide = {
       id: randomUUID(),
       riderId: input.riderId,
@@ -233,7 +234,8 @@ const MemoryRideRepository: RideRepo = {
       discountTokenId: input.discountTokenId ?? null,
       startedAt: null,
       completedAt: null,
-      createdAt: new Date()
+      createdAt: now,
+      lastActivityAt: now
     }
     db.rides.set(ride.id, ride)
     return mapMemoryRide(ride)
@@ -251,7 +253,8 @@ const MemoryRideRepository: RideRepo = {
     if (!ride) throw new Error('Ride not found')
     db.rides.set(id, {
       ...ride,
-      ...patch
+      ...patch,
+      lastActivityAt: new Date()
     })
     return mapMemoryRide(db.rides.get(id)!)
   },

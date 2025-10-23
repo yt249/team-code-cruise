@@ -54,7 +54,6 @@ export function BookingProvider({ children }) {
     const pickup = booking.pickup;
     const updateInterval = 2000; // Update every 2 seconds
 
-    console.log('[Animation] Starting driver movement animation with route path');
 
     // Fetch the actual route path first
     getRoutePath(initialDriverLocationRef.current, pickup)
@@ -65,7 +64,6 @@ export function BookingProvider({ children }) {
         }
 
         routePathRef.current = path;
-        console.log(`[Animation] Route path loaded with ${path.length} points`);
 
         const totalSteps = driverETA ? Math.ceil(driverETA.duration * 60 / 2) : 60; // Total steps based on ETA
         let currentStep = 0;
@@ -85,7 +83,6 @@ export function BookingProvider({ children }) {
 
           // If driver reached pickup, stop animation and transition state
           if (progress >= 1) {
-            console.log('[Animation] Driver reached pickup, stopping animation');
             clearInterval(driverAnimationRef.current);
             driverAnimationRef.current = null;
 
@@ -152,7 +149,6 @@ export function BookingProvider({ children }) {
     const destination = booking.dropoff;
     const updateInterval = 2000; // Update every 2 seconds
 
-    console.log('[Animation] Starting trip to destination animation with route path');
 
     // Fetch the actual route path first
     getRoutePath(booking.pickup, destination)
@@ -163,7 +159,6 @@ export function BookingProvider({ children }) {
         }
 
         routePathRef.current = path;
-        console.log(`[Animation] Trip route path loaded with ${path.length} points`);
 
         const totalSteps = tripDistance ? Math.ceil(tripDistance.duration * 60 / 2) : 90; // Total steps based on trip duration
         let currentStep = 0;
@@ -183,7 +178,6 @@ export function BookingProvider({ children }) {
 
           // If driver reached destination, stop animation and complete trip
           if (progress >= 1) {
-            console.log('[Animation] Driver reached destination, completing trip');
             clearInterval(driverAnimationRef.current);
             driverAnimationRef.current = null;
 
@@ -234,7 +228,6 @@ export function BookingProvider({ children }) {
       try {
         const distanceData = await calculateTripDistance(pickup, dropoff);
         setTripDistance(distanceData);
-        console.log('[BookingContext] Trip distance calculated:', distanceData);
       } catch (distErr) {
         console.error('[BookingContext] Failed to calculate trip distance:', distErr);
         // Continue without distance - not critical
@@ -297,7 +290,6 @@ export function BookingProvider({ children }) {
         try {
           const etaData = await calculateDriverETA(normalizedRideData.driver.location, pickup);
           setDriverETA(etaData);
-          console.log('[BookingContext] Driver ETA calculated:', etaData);
         } catch (etaErr) {
           console.error('[BookingContext] Failed to calculate driver ETA:', etaErr);
           // Continue without ETA - animation will use default

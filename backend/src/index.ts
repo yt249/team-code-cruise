@@ -2,16 +2,18 @@ import dotenv from 'dotenv'
 import { app } from './server/app.js'
 import { isMemoryMode } from './workbench/runtimeConfig.js'
 import { initMemoryDb } from './workbench/memoryDb.js'
+import { RideTimeoutService } from './core/ride-timeout.service.js'
 
 dotenv.config()
 
 if (isMemoryMode()) {
   initMemoryDb()
-  console.log('[RB] Memory data mode enabled with seeded records')
+
+  // Start ride timeout monitoring
+  RideTimeoutService.start()
 }
 
 const PORT = Number(process.env.PORT || 3000)
 
 app.listen(PORT, () => {
-  console.log(`[RB] API listening on http://localhost:${PORT}`)
 })

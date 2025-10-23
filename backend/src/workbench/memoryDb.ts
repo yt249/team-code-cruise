@@ -45,6 +45,7 @@ export type MemoryRide = {
   startedAt: Date | null
   completedAt: Date | null
   createdAt: Date
+  lastActivityAt: Date
 }
 
 export type MemoryPaymentIntent = {

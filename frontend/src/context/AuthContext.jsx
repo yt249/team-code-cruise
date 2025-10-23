@@ -57,6 +57,7 @@ export function AuthProvider({ children }) {
     authService.logout();
     setUser(null);
     setIsLoggedIn(false);
+    setError(null);
   };
 
   const value = {
