@@ -11,6 +11,12 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Google Maps initialization callback
+      window.initMap = function() {
+        console.log('Google Maps loaded');
+      };
+    </script>
     <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB41DRUbKWJHPxaFjMAwdrzWzbVKartNGg&libraries=places&callback=initMap"></script>
     <script type="module" src="/src/main.jsx"></script>
   </body>

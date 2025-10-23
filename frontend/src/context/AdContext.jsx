@@ -1,5 +1,5 @@
 import { createContext, useContext, useState } from 'react';
-import { adService } from '../services/adService';
+import { adService } from '../services/advertisementService';
 
 const AdContext = createContext();
 

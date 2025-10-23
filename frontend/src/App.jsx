@@ -14,7 +14,7 @@ import './App.css';
 
 function AppContent() {
   const { isLoggedIn, loading: authLoading } = useAuth();
-  const { booking, trip, createBooking, requestDriver, reset } = useBooking();
+  const { booking, trip, requestRide, reset } = useBooking();
   const [currentView, setCurrentView] = useState('landing'); // landing, booking, payment, tracking, completed
   const [tripData, setTripData] = useState(null);
 
@@ -37,28 +37,19 @@ function AppContent() {
     setCurrentView('payment');
   };
 
-  const handleConfirmPayment = async (paymentMethod, discount) => {
-    // Create booking with trip data
+  const handleConfirmPayment = async (paymentMethod, discountToken) => {
+    // Request ride with backend API (driver auto-assigned)
     try {
-      // Create booking first
-      const discountData = discount ? { percentage: 12, amount: discount } : null;
-      const bookingData = await createBooking(tripData.quote, discountData);
+      const pickup = tripData.pickup.location; // { lat, lng }
+      const dropoff = tripData.dropoff.location; // { lat, lng }
+      const quoteId = tripData.quote.id;
+      const tokenId = discountToken?.tokenId || null;
 
-      // Set booking data with full location objects (including address)
-      bookingData.pickup = {
-        ...tripData.pickup.location,
-        address: tripData.pickup.address
-      };
-      bookingData.dropoff = {
-        ...tripData.dropoff.location,
-        address: tripData.dropoff.address
-      };
-
-      // Request driver
-      await requestDriver(bookingData);
+      // Call backend API - driver is auto-assigned
+      await requestRide(pickup, dropoff, quoteId, tokenId);
       setCurrentView('tracking');
     } catch (err) {
-      console.error('Failed to request driver:', err);
+      console.error('Failed to request ride:', err);
     }
   };
 
