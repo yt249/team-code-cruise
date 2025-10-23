@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { BookingProvider } from './context/BookingContext';
 import { AdProvider } from './context/AdContext';
 import { useBooking } from './context/BookingContext';
+import LoginPage from './components/Landing/LoginPage';
 import LandingPage from './components/Landing/LandingPage';
 import NewBookingUI from './components/booking/NewBookingUI';
 import PaymentConfirmation from './components/payment/PaymentConfirmation';
@@ -11,6 +13,7 @@ import TripCompletedUI from './components/TripCompleted/TripCompletedUI';
 import './App.css';
 
 function AppContent() {
+  const { isLoggedIn, loading: authLoading } = useAuth();
   const { booking, trip, createBooking, requestDriver, reset } = useBooking();
   const [currentView, setCurrentView] = useState('landing'); // landing, booking, payment, tracking, completed
   const [tripData, setTripData] = useState(null);
@@ -68,6 +71,31 @@ function AppContent() {
     setCurrentView('landing');
   };
 
+  const handleLoginSuccess = () => {
+    setCurrentView('landing');
+  };
+
+  // Show loading while checking authentication
+  if (authLoading) {
+    return (
+      <div className="app">
+        <div className="loading-screen">
+          <div className="loading-spinner"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login page if not authenticated
+  if (!isLoggedIn) {
+    return (
+      <div className="app">
+        <LoginPage onLoginSuccess={handleLoginSuccess} />
+      </div>
+    );
+  }
+
   // Render appropriate view
   const renderView = () => {
     // Check for trip completion
@@ -119,11 +147,13 @@ function AppContent() {
 
 function App() {
   return (
-    <BookingProvider>
-      <AdProvider>
-        <AppContent />
-      </AdProvider>
-    </BookingProvider>
+    <AuthProvider>
+      <BookingProvider>
+        <AdProvider>
+          <AppContent />
+        </AdProvider>
+      </BookingProvider>
+    </AuthProvider>
   );
 }
 
