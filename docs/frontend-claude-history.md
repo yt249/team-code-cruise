@@ -318,7 +318,7 @@ useEffect(() => {
 
 ### Project Structure
 ```
-ride-app/
+frontend/
 ├── src/
 │   ├── components/
 │   │   ├── Map/

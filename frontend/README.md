@@ -38,7 +38,7 @@ A modern, responsive ride-sharing application built with React that demonstrates
 1. Clone the repository:
 \`\`\`bash
 git clone <repository-url>
-cd ride-app
+cd frontend
 \`\`\`
 
 2. Install dependencies:
@@ -69,7 +69,7 @@ npm run dev
 ## Project Structure
 
 \`\`\`
-ride-app/
+frontend/
 ├── src/
 │   ├── components/
 │   │   ├── booking/
