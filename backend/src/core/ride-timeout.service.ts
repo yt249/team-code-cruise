@@ -62,6 +62,7 @@ export class RideTimeoutService {
 
       for (const ride of stalRides) {
         const timeSinceActivity = Math.round((now - ride.lastActivityAt.getTime()) / 1000)
+        console.warn(
           `[RideTimeout] Cancelling ride ${ride.id} (status: ${ride.status}, ` +
           `last activity: ${timeSinceActivity}s ago, driver: ${ride.driverId})`
         )
