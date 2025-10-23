@@ -33,19 +33,26 @@ RB_DATA_MODE=memory pnpm dev      # or npm run dev:memory
 npm test    # uses RB_DATA_MODE=memory under the hood
 ```
 
-## API (RB9)
+## Basic API (RB9)
 - `POST /login` `{ email, password }` → `{ token }`
 - `GET /me` (auth) → `UserProfile`
-- `POST /quotes` `{ pickup:{lat,lon}, dest:{lat,lon}, opts? }` → `FareQuote`
-- `POST /rides` (auth) `{ pickup, dest, quoteId }` → `Ride` (triggers matching)
+- `POST /quotes` `{ pickup:{lat,lon}, dest:{lat,lon}, opts?, tokenId? }` → `FareQuote` (includes `discountApplied`, `discountPercent`, `discountedAmount`, `discountTokenId` when a token is supplied)
+- `POST /rides` (auth) `{ pickup, dest, quoteId, tokenId? }` → `Ride` (triggers driver matching; ride payload reflects applied discount fields)
 - `GET /rides/:id` (auth) → `Ride`
 - `POST /rides/:id/cancel` (auth) → `{ status }`
 - `POST /rides/:id/complete` (auth) → `{ status }`
 - `POST /payments/intents` (auth) `{ rideId }` → `{ intentId }`
 - `POST /payments/confirm` (auth) `{ intentId, method }` → `{ status }`
 
+### Ads & Discounts (AD9)
+- `GET /ads/eligibility` (auth) → `{ isEligible, cooldownEndsAt? }`
+- `POST /ads/sessions` (auth) `{ percent }` → `{ sessionId, provider, percent, expiresAt }`
+- `POST /ads/playback` (auth) `{ sessionId, event, ts? }` → `{ ok: true }`
+- `POST /ads/complete` (auth) `{ sessionId }` → `{ tokenId, expiresAt }`
+- `POST /ads/token/redeem` (auth) `{ tokenId, rideId, quoteId? }` → `{ state }`
+
 ## Notes
 - Implements RB5.2 ride lifecycle (simplified) and RB6.1 happy path.
 - RB7 failures: basic safeguards for double-charge and no-driver.
-- RB13 security: auth guard on ride & payment endpoints; per-rider access check.
+- RB13 security: auth guard on ride, payment, and ad endpoints; per-rider access check.
 - PostGIS `geography` columns store pickup/destination; helpers convert to lat/lon for API responses.
