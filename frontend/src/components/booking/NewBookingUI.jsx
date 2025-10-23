@@ -1,16 +1,26 @@
 import { useState, useRef, useEffect } from 'react';
 import { useBooking } from '../../context/BookingContext';
+import { useAuth } from '../../context/AuthContext';
 import Map from '../Map/Map';
 import './NewBookingUI.css';
 
 export default function NewBookingUI({ onProceedToPayment }) {
   const {
     quote,
+    tripDistance,
     loading,
     error,
     getFareQuote,
     clearQuote
   } = useBooking();
+
+  const { logout } = useAuth();
+
+  const handleLogout = () => {
+    if (window.confirm('Are you sure you want to logout?')) {
+      logout();
+    }
+  };
 
   const [pickupAddress, setPickupAddress] = useState('');
   const [dropoffAddress, setDropoffAddress] = useState('');
@@ -155,7 +165,7 @@ export default function NewBookingUI({ onProceedToPayment }) {
     if (!pickupLocation || !dropoffLocation) return;
 
     try {
-      await getFareQuote(pickupAddress, dropoffAddress);
+      await getFareQuote(pickupLocation, dropoffLocation);
     } catch (err) {
       console.error('Failed to get quote:', err);
     }
@@ -166,7 +176,8 @@ export default function NewBookingUI({ onProceedToPayment }) {
       onProceedToPayment({
         pickup: { address: pickupAddress, location: pickupLocation },
         dropoff: { address: dropoffAddress, location: dropoffLocation },
-        quote
+        quote,
+        tripDistance
       });
     }
   };
@@ -176,6 +187,16 @@ export default function NewBookingUI({ onProceedToPayment }) {
 
   return (
     <div className="new-booking-layout">
+      {/* Logout button */}
+      <button className="logout-button" onClick={handleLogout}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        Logout
+      </button>
+
       {/* Map Section */}
       <div className="new-map-section">
         <Map
@@ -299,13 +320,15 @@ export default function NewBookingUI({ onProceedToPayment }) {
               </div>
 
               <div className="quote-details">
-                <div className="quote-row">
-                  <span>Distance</span>
-                  <span className="quote-value">{quote.distance.toFixed(1)} mi</span>
-                </div>
+                {tripDistance && (
+                  <div className="quote-row">
+                    <span>Distance</span>
+                    <span className="quote-value">{tripDistance.distanceText}</span>
+                  </div>
+                )}
                 <div className="quote-row">
                   <span>Estimated Time</span>
-                  <span className="quote-value">{quote.estimatedTime} min</span>
+                  <span className="quote-value">{tripDistance ? tripDistance.durationText : `${quote.eta} min`}</span>
                 </div>
                 <div className="quote-row quote-total">
                   <span>Total Fare</span>

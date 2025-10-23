@@ -9,7 +9,7 @@ export default function PaymentConfirmation({ tripData, onConfirm, onCancel }) {
   const [adProgress, setAdProgress] = useState(0);
   const adTimerRef = useRef(null);
 
-  const { pickup, dropoff, quote } = tripData;
+  const { pickup, dropoff, quote, tripDistance } = tripData;
 
   const paymentMethods = [
     { id: 'card', name: 'Credit Card', icon: '💳', details: '•••• 4242' },
@@ -132,17 +132,19 @@ export default function PaymentConfirmation({ tripData, onConfirm, onCancel }) {
             </div>
 
             <div className="trip-stats">
-              <div className="stat-item">
-                <div className="stat-icon">🚗</div>
-                <div className="stat-info">
-                  <div className="stat-value">{quote.distance.toFixed(1)} mi</div>
-                  <div className="stat-label">Distance</div>
+              {tripDistance && (
+                <div className="stat-item">
+                  <div className="stat-icon">📏</div>
+                  <div className="stat-info">
+                    <div className="stat-value">{tripDistance.distanceText}</div>
+                    <div className="stat-label">Distance</div>
+                  </div>
                 </div>
-              </div>
+              )}
               <div className="stat-item">
                 <div className="stat-icon">⏱️</div>
                 <div className="stat-info">
-                  <div className="stat-value">{quote.estimatedTime} min</div>
+                  <div className="stat-value">{tripDistance ? tripDistance.durationText : `${quote.eta} min`}</div>
                   <div className="stat-label">Est. Time</div>
                 </div>
               </div>

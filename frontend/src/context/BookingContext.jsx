@@ -1,6 +1,7 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { rideService } from '../services/rideService';
 import { paymentService } from '../services/paymentService';
+import { calculateTripDistance, calculateDriverETA, getRoutePath } from '../utils/googleMaps';
 
 const BookingContext = createContext();
 
@@ -23,12 +24,222 @@ export function BookingProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [tripProgress, setTripProgress] = useState(0);
+  const [tripDistance, setTripDistance] = useState(null); // { distance: km, duration: min, distanceText, durationText }
+  const [driverETA, setDriverETA] = useState(null); // { distance: km, duration: min, distanceText, durationText }
+  const driverAnimationRef = useRef(null);
+  const initialDriverLocationRef = useRef(null);
+  const routePathRef = useRef(null); // Store route path for animation
+
+  // Simulate driver movement towards pickup following actual roads
+  useEffect(() => {
+    // Only start animation when trip state changes to DriverEnRoute
+    if (!trip || trip.state !== 'DriverEnRoute' || !booking || !booking.pickup) {
+      return;
+    }
+
+    // Don't restart animation if already running
+    if (driverAnimationRef.current) {
+      return;
+    }
+
+    // Store initial driver location when animation starts
+    if (!initialDriverLocationRef.current && driverLocation) {
+      initialDriverLocationRef.current = { ...driverLocation };
+    }
+
+    if (!initialDriverLocationRef.current) {
+      return;
+    }
+
+    const pickup = booking.pickup;
+    const updateInterval = 2000; // Update every 2 seconds
+
+    console.log('[Animation] Starting driver movement animation with route path');
+
+    // Fetch the actual route path first
+    getRoutePath(initialDriverLocationRef.current, pickup)
+      .then(path => {
+        // Validate path has points
+        if (!path || path.length === 0) {
+          throw new Error('Route path is empty');
+        }
+
+        routePathRef.current = path;
+        console.log(`[Animation] Route path loaded with ${path.length} points`);
+
+        const totalSteps = driverETA ? Math.ceil(driverETA.duration * 60 / 2) : 60; // Total steps based on ETA
+        let currentStep = 0;
+
+        driverAnimationRef.current = setInterval(() => {
+          currentStep++;
+          const progress = Math.min(currentStep / totalSteps, 1);
+
+          // Calculate position along the route path with safety check
+          const pathIndex = Math.min(Math.floor(progress * (path.length - 1)), path.length - 1);
+          const currentPoint = path[pathIndex];
+
+          if (currentPoint && currentPoint.lat !== undefined && currentPoint.lng !== undefined) {
+            setDriverLocation(currentPoint);
+          }
+          setTripProgress(progress);
+
+          // If driver reached pickup, stop animation and transition state
+          if (progress >= 1) {
+            console.log('[Animation] Driver reached pickup, stopping animation');
+            clearInterval(driverAnimationRef.current);
+            driverAnimationRef.current = null;
+
+            // Automatically transition to ArrivedAtPickup state
+            setTrip(prev => ({
+              ...prev,
+              state: 'ArrivedAtPickup'
+            }));
+          }
+        }, updateInterval);
+      })
+      .catch(err => {
+        console.error('[Animation] Failed to fetch route path, falling back to linear animation:', err);
+
+        // Fallback to linear interpolation if route fetching fails
+        const totalSteps = driverETA ? Math.ceil(driverETA.duration * 60 / 2) : 60;
+        let currentStep = 0;
+
+        driverAnimationRef.current = setInterval(() => {
+          currentStep++;
+          const progress = Math.min(currentStep / totalSteps, 1);
+
+          const newLat = initialDriverLocationRef.current.lat + (pickup.lat - initialDriverLocationRef.current.lat) * progress;
+          const newLng = initialDriverLocationRef.current.lng + (pickup.lng - initialDriverLocationRef.current.lng) * progress;
+
+          setDriverLocation({ lat: newLat, lng: newLng });
+          setTripProgress(progress);
+
+          if (progress >= 1) {
+            clearInterval(driverAnimationRef.current);
+            driverAnimationRef.current = null;
+
+            setTrip(prev => ({
+              ...prev,
+              state: 'ArrivedAtPickup'
+            }));
+          }
+        }, updateInterval);
+      });
+
+    return () => {
+      if (driverAnimationRef.current) {
+        clearInterval(driverAnimationRef.current);
+        driverAnimationRef.current = null;
+      }
+    };
+  }, [trip?.state]); // Only depend on trip state change
+
+  // Simulate driver movement from pickup to destination during trip following actual roads
+  useEffect(() => {
+    // Only start animation when trip state changes to InTrip
+    if (!trip || trip.state !== 'InTrip' || !booking || !booking.pickup || !booking.dropoff) {
+      return;
+    }
+
+    // Don't restart animation if already running
+    if (driverAnimationRef.current) {
+      return;
+    }
+
+    // Reset initial location to pickup when starting trip
+    initialDriverLocationRef.current = { ...booking.pickup };
+
+    const destination = booking.dropoff;
+    const updateInterval = 2000; // Update every 2 seconds
+
+    console.log('[Animation] Starting trip to destination animation with route path');
+
+    // Fetch the actual route path first
+    getRoutePath(booking.pickup, destination)
+      .then(path => {
+        // Validate path has points
+        if (!path || path.length === 0) {
+          throw new Error('Route path is empty');
+        }
+
+        routePathRef.current = path;
+        console.log(`[Animation] Trip route path loaded with ${path.length} points`);
+
+        const totalSteps = tripDistance ? Math.ceil(tripDistance.duration * 60 / 2) : 90; // Total steps based on trip duration
+        let currentStep = 0;
+
+        driverAnimationRef.current = setInterval(() => {
+          currentStep++;
+          const progress = Math.min(currentStep / totalSteps, 1);
+
+          // Calculate position along the route path with safety check
+          const pathIndex = Math.min(Math.floor(progress * (path.length - 1)), path.length - 1);
+          const currentPoint = path[pathIndex];
+
+          if (currentPoint && currentPoint.lat !== undefined && currentPoint.lng !== undefined) {
+            setDriverLocation(currentPoint);
+          }
+          setTripProgress(progress);
+
+          // If driver reached destination, stop animation and complete trip
+          if (progress >= 1) {
+            console.log('[Animation] Driver reached destination, completing trip');
+            clearInterval(driverAnimationRef.current);
+            driverAnimationRef.current = null;
+
+            // Automatically complete the trip
+            completeRide();
+          }
+        }, updateInterval);
+      })
+      .catch(err => {
+        console.error('[Animation] Failed to fetch trip route path, falling back to linear animation:', err);
+
+        // Fallback to linear interpolation if route fetching fails
+        const totalSteps = tripDistance ? Math.ceil(tripDistance.duration * 60 / 2) : 90;
+        let currentStep = 0;
+
+        driverAnimationRef.current = setInterval(() => {
+          currentStep++;
+          const progress = Math.min(currentStep / totalSteps, 1);
+
+          const newLat = initialDriverLocationRef.current.lat + (destination.lat - initialDriverLocationRef.current.lat) * progress;
+          const newLng = initialDriverLocationRef.current.lng + (destination.lng - initialDriverLocationRef.current.lng) * progress;
+
+          setDriverLocation({ lat: newLat, lng: newLng });
+          setTripProgress(progress);
+
+          if (progress >= 1) {
+            clearInterval(driverAnimationRef.current);
+            driverAnimationRef.current = null;
+            completeRide();
+          }
+        }, updateInterval);
+      });
+
+    return () => {
+      if (driverAnimationRef.current) {
+        clearInterval(driverAnimationRef.current);
+        driverAnimationRef.current = null;
+      }
+    };
+  }, [trip?.state]); // Only depend on trip state change
 
   // Get fare quote (with optional discount token)
   const getFareQuote = async (pickup, dropoff, tokenId = null) => {
     setLoading(true);
     setError(null);
     try {
+      // Calculate trip distance using Google Maps API (non-blocking)
+      try {
+        const distanceData = await calculateTripDistance(pickup, dropoff);
+        setTripDistance(distanceData);
+        console.log('[BookingContext] Trip distance calculated:', distanceData);
+      } catch (distErr) {
+        console.error('[BookingContext] Failed to calculate trip distance:', distErr);
+        // Continue without distance - not critical
+      }
+
       // Expect pickup/dropoff to be { lat, lng } objects
       const quoteData = await rideService.getQuote(pickup, dropoff, tokenId);
       setQuote(quoteData);
@@ -43,28 +254,65 @@ export function BookingProvider({ children }) {
 
   // Create ride (combines booking + driver assignment)
   // Backend automatically assigns driver when ride is created
-  const requestRide = async (pickup, dropoff, quoteId, tokenId = null) => {
+  const requestRide = async (pickup, dropoff, quoteId, tokenId = null, pickupAddress = null, dropoffAddress = null) => {
     setLoading(true);
     setError(null);
     try {
       // Backend creates ride and auto-assigns nearest driver
       const rideData = await rideService.createRide(pickup, dropoff, quoteId, tokenId);
 
-      setBooking(rideData);
-      setDriver(rideData.driver);
+      // Add addresses to the already-normalized ride data (rideService already converted lon->lng and dest->dropoff)
+      const normalizedRideData = {
+        ...rideData,
+        pickup: {
+          ...rideData.pickup,
+          address: pickupAddress || 'Pickup Location'
+        },
+        dropoff: {
+          ...rideData.dropoff,
+          address: dropoffAddress || 'Destination'
+        }
+      };
 
-      // Set driver location (static from backend)
-      if (rideData.driver && rideData.driver.location) {
-        setDriverLocation(rideData.driver.location);
+      // Set booking immediately so FindingDriverModal can access it
+      // But don't set driver yet - this keeps the modal showing
+      setBooking(normalizedRideData);
+
+      // Check if driver was assigned
+      if (!normalizedRideData.driver) {
+        throw new Error('No drivers available. Please try again later.');
       }
 
-      // Set initial trip state
+      // Show "Finding driver" modal for 5 seconds before revealing driver
+      await new Promise(resolve => setTimeout(resolve, 5000));
+
+      // Now reveal the driver
+      setDriver(normalizedRideData.driver);
+
+      // Set driver location (already converted to { lat, lng } by rideService)
+      if (normalizedRideData.driver && normalizedRideData.driver.location) {
+        setDriverLocation(normalizedRideData.driver.location);
+
+        // Calculate driver ETA to pickup location (non-blocking)
+        try {
+          const etaData = await calculateDriverETA(normalizedRideData.driver.location, pickup);
+          setDriverETA(etaData);
+          console.log('[BookingContext] Driver ETA calculated:', etaData);
+        } catch (etaErr) {
+          console.error('[BookingContext] Failed to calculate driver ETA:', etaErr);
+          // Continue without ETA - animation will use default
+        }
+      } else {
+        console.warn('[BookingContext] No driver or driver location in ride data');
+      }
+
+      // Set initial trip state to DriverEnRoute (driver is automatically assigned and en route)
       setTrip({
-        state: 'DriverAssigned',
-        startTime: rideData.createdAt
+        state: 'DriverEnRoute',
+        startTime: normalizedRideData.createdAt
       });
 
-      return rideData;
+      return normalizedRideData;
     } catch (err) {
       setError(err.message);
       throw err;
@@ -161,6 +409,13 @@ export function BookingProvider({ children }) {
 
   // Reset all state
   const reset = () => {
+    // Clear driver animation
+    if (driverAnimationRef.current) {
+      clearInterval(driverAnimationRef.current);
+      driverAnimationRef.current = null;
+    }
+    initialDriverLocationRef.current = null;
+
     setPickupText('');
     setDropoffText('');
     setQuote(null);
@@ -169,6 +424,8 @@ export function BookingProvider({ children }) {
     setDriver(null);
     setDriverLocation(null);
     setTripProgress(0);
+    setTripDistance(null);
+    setDriverETA(null);
     setError(null);
   };
 
@@ -184,6 +441,8 @@ export function BookingProvider({ children }) {
     driver,
     driverLocation,
     tripProgress,
+    tripDistance,
+    driverETA,
     loading,
     error,
     // Quote methods
@@ -198,7 +457,10 @@ export function BookingProvider({ children }) {
     createPayment,
     confirmPayment,
     // Utility
-    reset
+    reset,
+    // Dev helpers (for testing/debugging)
+    setDriverLocation,
+    setTripProgress
   };
 
   return (

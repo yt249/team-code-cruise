@@ -3,6 +3,43 @@
   height: 100vh;
   width: 100%;
   overflow: hidden;
+  position: relative;
+}
+
+/* Logout Button */
+.new-booking-layout .logout-button {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  backdrop-filter: blur(10px);
+}
+
+.new-booking-layout .logout-button:hover {
+  background: rgba(239, 83, 80, 0.1);
+  border-color: rgba(239, 83, 80, 0.3);
+  color: #ff6b6b;
+  transform: translateY(-2px);
+}
+
+.new-booking-layout .logout-button svg {
+  transition: transform 0.3s;
+}
+
+.new-booking-layout .logout-button:hover svg {
+  transform: translateX(2px);
 }
 
 .new-map-section {

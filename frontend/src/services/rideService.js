@@ -172,7 +172,7 @@ export const rideService = {
       driverId: data.driverId,
       status: STATUS_MAP[data.status] || data.status,
       pickup: toFrontendCoords(data.pickup),
-      dropoff: toFrontendCoords(data.destination),
+      dropoff: toFrontendCoords(data.dest),
       baseFare: toDollars(data.fareAmount),
       finalFare: data.discountedAmount ? toDollars(data.discountedAmount) : toDollars(data.fareAmount),
       discountAmount: data.discountPercent ? (toDollars(data.fareAmount) * data.discountPercent / 100) : 0,
@@ -183,12 +183,7 @@ export const rideService = {
         name: data.driver.name,
         rating: data.driver.rating,
         phone: data.driver.phone || 'N/A',
-        vehicle: data.driver.vehicle ? {
-          make: data.driver.vehicle.make,
-          model: data.driver.vehicle.model,
-          plate: data.driver.vehicle.plate,
-          type: data.driver.vehicle.type
-        } : null,
+        vehicle: data.driver.vehicle || null,
         location: data.driver.location ? toFrontendCoords(data.driver.location) : null
       } : null,
       startedAt: data.startedAt ? new Date(data.startedAt).getTime() : null,

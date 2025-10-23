@@ -39,17 +39,27 @@ function AppContent() {
 
   const handleConfirmPayment = async (paymentMethod, discountToken) => {
     // Request ride with backend API (driver auto-assigned)
+    console.log('handleConfirmPayment called with:', { paymentMethod, discountToken });
+    console.log('tripData:', tripData);
+
     try {
       const pickup = tripData.pickup.location; // { lat, lng }
       const dropoff = tripData.dropoff.location; // { lat, lng }
+      const pickupAddress = tripData.pickup.address;
+      const dropoffAddress = tripData.dropoff.address;
       const quoteId = tripData.quote.id;
       const tokenId = discountToken?.tokenId || null;
 
+      console.log('Requesting ride with:', { pickup, dropoff, quoteId, tokenId });
+
       // Call backend API - driver is auto-assigned
-      await requestRide(pickup, dropoff, quoteId, tokenId);
+      const result = await requestRide(pickup, dropoff, quoteId, tokenId, pickupAddress, dropoffAddress);
+      console.log('Ride requested successfully:', result);
+
       setCurrentView('tracking');
     } catch (err) {
       console.error('Failed to request ride:', err);
+      alert('Failed to request ride: ' + err.message);
     }
   };
 

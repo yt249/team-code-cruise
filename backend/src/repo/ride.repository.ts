@@ -21,7 +21,15 @@ export type RideRecord = {
   startedAt: Date | null
   completedAt: Date | null
   createdAt: Date
-  driver: { id: string; name: string; rating: number; status: string } | null
+  driver: {
+    id: string
+    name: string
+    rating: number
+    status: string
+    vehicle?: { make: string; model: string; plate: string; type: string; color: string } | null
+    phone?: string
+    location?: { lat: number; lon: number } | null
+  } | null
   rider: { id: string; name: string; email: string; rating: number } | null
   paymentIntent: { id: string; status: string; amount: number } | null
 }
@@ -312,6 +320,10 @@ function mapMemoryRide(ride: MemoryRide): RideRecord {
   const driver = ride.driverId ? db.drivers.get(ride.driverId) || null : null
   const paymentIntent = Array.from(db.paymentIntents.values()).find((p) => p.rideId === ride.id) || null
 
+  // Get vehicle and location for driver
+  const vehicle = driver?.vehicleId ? db.vehicles.get(driver.vehicleId) || null : null
+  const driverLocation = ride.driverId ? db.driverLocations.get(ride.driverId) || null : null
+
   return {
     id: ride.id,
     riderId: ride.riderId,
@@ -333,7 +345,16 @@ function mapMemoryRide(ride: MemoryRide): RideRecord {
           id: driver.id,
           name: driver.name,
           rating: driver.rating,
-          status: driver.status
+          status: driver.status,
+          vehicle: vehicle ? {
+            make: vehicle.make,
+            model: vehicle.model,
+            plate: vehicle.plate,
+            type: vehicle.type,
+            color: 'Black' // Default color since it's not in DB
+          } : null,
+          phone: '+1 (555) 123-4567', // Mock phone number
+          location: driverLocation ? { lat: driverLocation.lat, lon: driverLocation.lon } : null
         }
       : null,
     rider: rider

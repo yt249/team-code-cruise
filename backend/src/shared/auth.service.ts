@@ -6,7 +6,7 @@ type JwtPayload = { sub: string; role: string }
 export class AuthService {
   static required(req: Request, res: Response, next: NextFunction) {
     try {
-      const payload = this.verify(req)
+      const payload = AuthService.verify(req)
       if (!payload) return res.status(401).json({ error: 'Missing Authorization' })
       ;(req as any).user = payload
       next()
@@ -18,7 +18,7 @@ export class AuthService {
 
   static optional(req: Request, _res: Response, next: NextFunction) {
     try {
-      const payload = this.verify(req)
+      const payload = AuthService.verify(req)
       if (payload) (req as any).user = payload
     } catch {
       // ignore optional auth failures

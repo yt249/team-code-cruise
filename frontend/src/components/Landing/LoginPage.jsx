@@ -26,8 +26,11 @@ export default function LoginPage({ onLoginSuccess }) {
     <div className="login-page">
       <div className="login-container">
         <div className="login-header">
-          <h1>CodeCruise</h1>
-          <p>Welcome back! Please login to continue.</p>
+          <h1>
+            <span className="logo-code">Code</span>
+            <span className="logo-cruise">Cruise</span>
+          </h1>
+          <p>Welcome back! Please sign in to continue.</p>
         </div>
 
         <form className="login-form" onSubmit={handleSubmit}>

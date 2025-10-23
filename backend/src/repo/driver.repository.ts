@@ -74,12 +74,23 @@ const MemoryDriverRepository: DriverRepo = {
 
   async findNearby(pickup, radiusKm) {
     const db = getMemoryDb()
+    console.log('[DriverRepo] Total drivers in DB:', db.drivers.size)
+    console.log('[DriverRepo] Total driver locations:', db.driverLocations.size)
+
     const drivers = Array.from(db.drivers.values()).map((d) => ({
       id: d.id,
       name: d.name,
       rating: d.rating,
       status: d.status
     }))
+    console.log('[DriverRepo] Drivers:', drivers.length)
+
+    // Log first driver location as sample
+    const firstLoc = Array.from(db.driverLocations.entries())[0]
+    if (firstLoc) {
+      console.log('[DriverRepo] Sample location:', firstLoc)
+    }
+
     return computeNearby(drivers, db.driverLocations, pickup, radiusKm)
   },
 

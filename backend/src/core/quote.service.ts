@@ -24,7 +24,7 @@ export class QuoteService {
     opts: { riderId?: string; vehicleType?: string; pax?: number; tokenId?: string } = {}
   ): Promise<FareQuote> {
     const { amount, surge, currency } = PricingService.estimate(pickup, dest, opts)
-    const expiresAt = new Date(Date.now() + 5 * 60_000)
+    const expiresAt = new Date(Date.now() + 10 * 60_000) // 10 minutes expiration
     const etaMinutes = await LocationService.eta(pickup, dest)
     const id = randomUUID()
 

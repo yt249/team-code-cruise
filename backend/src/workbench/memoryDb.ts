@@ -155,31 +155,31 @@ export function seedMemoryDb() {
       name: 'John Smith',
       rating: 4.9,
       vehicle: { make: 'Toyota', model: 'Camry', plate: 'ABC-123', type: 'SEDAN' },
-      location: { lat: 37.7749, lon: -122.4194 } // San Francisco Downtown
+      location: { lat: 40.4443, lon: -79.9436 } // CMU Campus
     },
     {
       name: 'Maria Garcia',
       rating: 4.8,
       vehicle: { make: 'Honda', model: 'Accord', plate: 'XYZ-456', type: 'SEDAN' },
-      location: { lat: 37.7849, lon: -122.4094 } // Near Union Square
+      location: { lat: 40.4506, lon: -79.9859 } // Oakland Pittsburgh
     },
     {
       name: 'David Chen',
       rating: 4.7,
       vehicle: { make: 'Ford', model: 'Fusion', plate: 'DEF-789', type: 'SEDAN' },
-      location: { lat: 37.7649, lon: -122.4294 } // Near Mission District
+      location: { lat: 40.4306, lon: -80.0059 } // South Side Pittsburgh
     },
     {
       name: 'Sarah Johnson',
       rating: 4.9,
       vehicle: { make: 'Chevrolet', model: 'Malibu', plate: 'GHI-012', type: 'SEDAN' },
-      location: { lat: 37.7949, lon: -122.3994 } // Near Financial District
+      location: { lat: 40.4606, lon: -79.9759 } // Shadyside Pittsburgh
     },
     {
       name: 'Michael Brown',
       rating: 4.6,
       vehicle: { make: 'Nissan', model: 'Altima', plate: 'JKL-345', type: 'SEDAN' },
-      location: { lat: 37.7549, lon: -122.4394 } // Near SOMA
+      location: { lat: 40.4206, lon: -80.0159 } // West End Pittsburgh
     }
   ]
 

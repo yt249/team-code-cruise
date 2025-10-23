@@ -1,12 +1,30 @@
 import { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import './LandingPage.css';
 
 export default function LandingPage({ onGetStarted }) {
   const [animationComplete, setAnimationComplete] = useState(false);
+  const { logout } = useAuth();
+
+  const handleLogout = () => {
+    if (window.confirm('Are you sure you want to logout?')) {
+      logout();
+    }
+  };
 
   return (
     <div className="landing-page">
       <div className="landing-gradient-bg"></div>
+
+      {/* Logout button */}
+      <button className="logout-button" onClick={handleLogout}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        Logout
+      </button>
 
       <div className="landing-content">
         {/* Logo Section */}
