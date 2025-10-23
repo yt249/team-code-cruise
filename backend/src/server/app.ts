@@ -1,0 +1,22 @@
+import express from 'express'
+import 'express-async-errors'
+import cors from 'cors'
+import { authRouter } from '../web/auth.controller.js'
+import { quoteRouter } from '../web/quote.controller.js'
+import { rideRouter } from '../web/ride.controller.js'
+import { paymentRouter } from '../web/payment.controller.js'
+import { errorHandler } from './errorHandler.js'
+import { adsRouter } from '../web/ad.controller.js'
+
+export const app = express()
+
+app.use(cors())
+app.use(express.json())
+
+app.use(authRouter)
+app.use('/quotes', quoteRouter)
+app.use('/rides', rideRouter)
+app.use('/payments', paymentRouter)
+app.use('/ads', adsRouter)
+
+app.use(errorHandler)

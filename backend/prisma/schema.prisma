@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RideStatus {
+  REQUESTED
+  MATCHING
+  DRIVER_ASSIGNED
+  DRIVER_EN_ROUTE
+  IN_RIDE
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  REQUIRES_CONFIRMATION
+  PAID
+  FAILED
+}
+
+enum AdStatus {
+  OFFERED
+  WATCHING
+  COMPLETED
+  CANCELLED
+}
+
+enum TokenState {
+  ACTIVE
+  REDEEMED
+  EXPIRED
+  REVOKED
+}
+
+model User {
+  id         String   @id @default(uuid())
+  name       String
+  email      String   @unique
+  password   String
+  rating     Float    @default(5.0)
+  rides      Ride[]   @relation("RiderRides")
+  adSessions AdSession[]
+  discountTokens DiscountToken[]
+  createdAt  DateTime @default(now())
+}
+
+model Driver {
+  id        String   @id @default(uuid())
+  name      String
+  rating    Float    @default(5.0)
+  status    String   @default("AVAILABLE")
+  vehicle   Vehicle?
+  rides     Ride[]   @relation("DriverRides")
+}
+
+model Vehicle {
+  id       String  @id @default(uuid())
+  make     String
+  model    String
+  plate    String  @unique
+  type     String
+  driverId String? @unique
+  driver   Driver? @relation(fields: [driverId], references: [id])
+}
+
+model Ride {
+  id            String          @id @default(uuid())
+  riderId       String
+  rider         User            @relation("RiderRides", fields: [riderId], references: [id])
+  driverId      String?
+  driver        Driver?         @relation("DriverRides", fields: [driverId], references: [id])
+  pickup        Unsupported("geography")
+  destination   Unsupported("geography")
+  status        RideStatus      @default(REQUESTED)
+  fareAmount    Int
+  surge         Decimal         @default(1.0)
+  currency      String          @default("USD")
+  discountPercent  Int?
+  discountedAmount Int?
+  discountTokenId  String?      @unique
+  discountToken    DiscountToken? @relation("RideDiscountToken", fields: [discountTokenId], references: [id])
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime        @default(now())
+  paymentIntent PaymentIntent?
+}
+
+model PaymentIntent {
+  id        String        @id
+  rideId    String        @unique
+  ride      Ride          @relation(fields: [rideId], references: [id])
+  amount    Int
+  status    PaymentStatus @default(REQUIRES_CONFIRMATION)
+  method    String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model AdSession {
+  id             String         @id @default(uuid())
+  riderId        String
+  rider          User           @relation(fields: [riderId], references: [id])
+  percent        Int
+  provider       String
+  status         AdStatus       @default(OFFERED)
+  startedAt      DateTime?
+  completedAt    DateTime?
+  playbackEvents Json
+  expiresAt      DateTime
+  createdAt      DateTime       @default(now())
+  token          DiscountToken? @relation("SessionToken")
+}
+
+model DiscountToken {
+  id             String        @id
+  riderId        String
+  rider          User          @relation(fields: [riderId], references: [id])
+  percent        Int
+  state          TokenState    @default(ACTIVE)
+  quoteId        String?
+  expiresAt      DateTime
+  redeemedRideId String?
+  createdAt      DateTime      @default(now())
+  sessionId      String        @unique
+  session        AdSession     @relation("SessionToken", fields: [sessionId], references: [id])
+  ride           Ride?         @relation("RideDiscountToken")
+}
