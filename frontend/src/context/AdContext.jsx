@@ -1,5 +1,5 @@
 import { createContext, useContext, useState } from 'react';
-import { mockAdService } from '../services/mockAdService';
+import { adService } from '../services/adService';
 
 const AdContext = createContext();
 
@@ -12,76 +12,122 @@ export function useAd() {
 }
 
 export function AdProvider({ children }) {
+  const [isEligible, setIsEligible] = useState(false);
+  const [cooldownEndsAt, setCooldownEndsAt] = useState(null);
   const [adSession, setAdSession] = useState(null);
   const [showAdOffer, setShowAdOffer] = useState(false);
   const [adPlaying, setAdPlaying] = useState(false);
   const [adProgress, setAdProgress] = useState(0);
-  const [discount, setDiscount] = useState(null);
+  const [discountToken, setDiscountToken] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Start ad session
-  const startAdSession = async (riderId, baseFare) => {
+  // Check ad eligibility
+  const checkEligibility = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const session = await mockAdService.startAdSession(riderId, baseFare);
-      setAdSession(session);
-      setShowAdOffer(true);
-      return session;
+      const result = await adService.checkEligibility();
+      setIsEligible(result.isEligible);
+      setCooldownEndsAt(result.cooldownEndsAt);
+      return result;
     } catch (err) {
-      console.error('Failed to start ad session:', err);
+      console.error('Failed to check eligibility:', err);
+      setError(err.message);
+      setIsEligible(false);
     } finally {
       setLoading(false);
     }
   };
 
-  // Play ad
+  // Start ad session (percent: 10-15)
+  const startAdSession = async (percent = 10) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const session = await adService.createSession(percent);
+      setAdSession(session);
+      setShowAdOffer(true);
+      return session;
+    } catch (err) {
+      console.error('Failed to start ad session:', err);
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Play ad (start playback)
   const playAd = async () => {
-    if (!adSession) return;
+    if (!adSession || !adSession.sessionId) return;
 
     setAdPlaying(true);
     setShowAdOffer(false);
-    await mockAdService.recordAdEvent(adSession.id, 'play');
+    setError(null);
+
+    try {
+      // Record ad start event
+      await adService.recordStart(adSession.sessionId);
+    } catch (err) {
+      console.error('Failed to record ad start:', err);
+      setError(err.message);
+    }
   };
 
-  // Update ad progress
-  const updateAdProgress = (progress) => {
+  // Update ad progress (triggers quartile tracking)
+  const updateAdProgress = async (progress) => {
     setAdProgress(progress);
+
+    if (!adSession || !adSession.sessionId) return;
+
+    try {
+      // Record quartile events
+      if (progress >= 0.25 && progress < 0.3) {
+        await adService.recordQuartile(adSession.sessionId, '25%');
+      } else if (progress >= 0.5 && progress < 0.55) {
+        await adService.recordQuartile(adSession.sessionId, '50%');
+      } else if (progress >= 0.75 && progress < 0.8) {
+        await adService.recordQuartile(adSession.sessionId, '75%');
+      }
+    } catch (err) {
+      console.error('Failed to record ad progress:', err);
+    }
   };
 
-  // Complete ad
+  // Complete ad and get discount token
   const completeAd = async () => {
-    if (!adSession) return;
+    if (!adSession || !adSession.sessionId) return null;
 
-    setAdPlaying(false);
-    await mockAdService.recordAdEvent(adSession.id, 'complete');
+    setLoading(true);
+    setError(null);
 
-    const completedSession = await mockAdService.completeAd(adSession);
-    setAdSession(completedSession);
+    try {
+      // Record complete event
+      await adService.recordComplete(adSession.sessionId);
 
-    const discountData = await mockAdService.finalizeDiscount(completedSession);
-    setDiscount(discountData);
+      // Get discount token
+      const token = await adService.completeSession(adSession.sessionId);
+      setDiscountToken(token);
+      setAdPlaying(false);
 
-    return discountData;
+      return token;
+    } catch (err) {
+      console.error('Failed to complete ad:', err);
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Skip ad
-  const skipAd = async () => {
-    if (!adSession) {
-      setShowAdOffer(false);
-      return null;
-    }
-
-    if (adPlaying) {
-      await mockAdService.recordAdEvent(adSession.id, 'skip');
-    }
-
-    const skippedSession = await mockAdService.skipAd(adSession);
-    setAdSession(skippedSession);
+  // Skip ad (no discount)
+  const skipAd = () => {
     setShowAdOffer(false);
     setAdPlaying(false);
-    setDiscount(null);
-
-    return null;
+    setAdSession(null);
+    setDiscountToken(null);
+    setAdProgress(0);
   };
 
   // Close ad offer modal
@@ -91,20 +137,29 @@ export function AdProvider({ children }) {
 
   // Reset ad state
   const resetAd = () => {
+    setIsEligible(false);
+    setCooldownEndsAt(null);
     setAdSession(null);
     setShowAdOffer(false);
     setAdPlaying(false);
     setAdProgress(0);
-    setDiscount(null);
+    setDiscountToken(null);
+    setError(null);
   };
 
   const value = {
+    // State
+    isEligible,
+    cooldownEndsAt,
     adSession,
     showAdOffer,
     adPlaying,
     adProgress,
-    discount,
+    discountToken,
     loading,
+    error,
+    // Methods
+    checkEligibility,
     startAdSession,
     playAd,
     updateAdProgress,

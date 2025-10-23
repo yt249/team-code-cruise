@@ -1,7 +1,6 @@
 import { createContext, useContext, useState } from 'react';
-import { mockBookingService } from '../services/mockBookingService';
-import { geocodeLocation } from '../data/mockRoutes';
-import { simulateDriverMovement } from '../data/mockDrivers';
+import { rideService } from '../services/rideService';
+import { paymentService } from '../services/paymentService';
 
 const BookingContext = createContext();
 
@@ -24,17 +23,14 @@ export function BookingProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [tripProgress, setTripProgress] = useState(0);
-  const [driverInterval, setDriverInterval] = useState(null);
 
-  // Get fare quote
-  const getFareQuote = async (pickup, dropoff) => {
+  // Get fare quote (with optional discount token)
+  const getFareQuote = async (pickup, dropoff, tokenId = null) => {
     setLoading(true);
     setError(null);
     try {
-      const pickupLocation = typeof pickup === 'string' ? geocodeLocation(pickup) : pickup;
-      const dropoffLocation = typeof dropoff === 'string' ? geocodeLocation(dropoff) : dropoff;
-
-      const quoteData = await mockBookingService.getFareQuote(pickupLocation, dropoffLocation);
+      // Expect pickup/dropoff to be { lat, lng } objects
+      const quoteData = await rideService.getQuote(pickup, dropoff, tokenId);
       setQuote(quoteData);
       return quoteData;
     } catch (err) {
@@ -45,140 +41,113 @@ export function BookingProvider({ children }) {
     }
   };
 
-  // Create booking with optional discount
-  const createBooking = async (quoteData, discount = null) => {
+  // Create ride (combines booking + driver assignment)
+  // Backend automatically assigns driver when ride is created
+  const requestRide = async (pickup, dropoff, quoteId, tokenId = null) => {
     setLoading(true);
     setError(null);
     try {
-      const bookingData = await mockBookingService.createBooking(quoteData, discount);
-      setBooking(bookingData);
-      return bookingData;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
+      // Backend creates ride and auto-assigns nearest driver
+      const rideData = await rideService.createRide(pickup, dropoff, quoteId, tokenId);
 
-  // Request driver
-  const requestDriver = async (bookingData) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const updatedBooking = await mockBookingService.requestDriver(bookingData);
-      setBooking(updatedBooking);
-      setDriver(updatedBooking.driver);
+      setBooking(rideData);
+      setDriver(rideData.driver);
 
-      // CRITICAL: Set driver's initial location immediately
-      const initialLocation = updatedBooking.driver.location;
-      console.log('Setting initial driver location:', initialLocation);
-      setDriverLocation(initialLocation);
-
-      // Start trip simulation
-      startTripSimulation(updatedBooking);
-
-      return updatedBooking;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Start trip simulation (driver movement)
-  const startTripSimulation = (bookingData) => {
-    const driver = bookingData.driver;
-    const destination = bookingData.pickup;
-
-    setTrip({
-      state: 'DriverEnRoute',
-      startTime: Date.now()
-    });
-
-    // Simulate driver moving to pickup
-    const interval = simulateDriverMovement(driver, destination, (newLocation, progress) => {
-      setDriverLocation(newLocation);
-      setTripProgress(progress);
-
-      // Driver arrived
-      if (progress >= 1) {
-        setTrip(prev => ({
-          ...prev,
-          state: 'ArrivedAtPickup'
-        }));
+      // Set driver location (static from backend)
+      if (rideData.driver && rideData.driver.location) {
+        setDriverLocation(rideData.driver.location);
       }
-    });
 
-    return interval;
+      // Set initial trip state
+      setTrip({
+        state: 'DriverAssigned',
+        startTime: rideData.createdAt
+      });
+
+      return rideData;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Start trip (rider picked up)
-  const startTrip = () => {
+  // Manual trip state updates (no animation)
+  const updateTripState = (state) => {
     setTrip(prev => ({
       ...prev,
-      state: 'InTrip',
-      pickupTime: Date.now()
+      state,
+      ...(state === 'InTrip' && { pickupTime: Date.now() }),
+      ...(state === 'Completed' && { endTime: Date.now() })
     }));
-
-    // Simulate trip to destination
-    if (booking && driver) {
-      const interval = simulateDriverMovement(
-        { ...driver, location: driverLocation },
-        booking.dropoff,
-        (newLocation, progress) => {
-          setDriverLocation(newLocation);
-          setTripProgress(progress);
-
-          // Trip completed
-          if (progress >= 1) {
-            completeTrip();
-          }
-        }
-      );
-      return interval;
-    }
   };
 
-  // Complete trip
-  const completeTrip = async () => {
-    if (!booking) return;
+  // Complete ride
+  const completeRide = async () => {
+    if (!booking || !booking.id) return;
 
+    setLoading(true);
     try {
-      const completedBooking = await mockBookingService.completeTrip(booking);
-      setBooking(completedBooking);
+      await rideService.completeRide(booking.id);
+
       setTrip(prev => ({
         ...prev,
         state: 'Completed',
         endTime: Date.now()
       }));
+
+      // Update booking status
+      setBooking(prev => ({ ...prev, status: 'Completed' }));
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Cancel booking
-  const cancelBooking = async () => {
-    if (!booking) return;
+  // Cancel ride
+  const cancelRide = async () => {
+    if (!booking || !booking.id) return;
 
     setLoading(true);
     try {
-      // Clear any active driver movement intervals
-      if (driverInterval) {
-        clearInterval(driverInterval);
-        setDriverInterval(null);
-        console.log('Cleared driver movement interval');
-      }
+      await rideService.cancelRide(booking.id);
 
-      const cancelledBooking = await mockBookingService.cancelBooking(booking);
-      setBooking(cancelledBooking);
-      setDriver(null);
-      setTrip(null);
-      setDriverLocation(null);
-      setTripProgress(0);
+      // Update local state
+      setBooking(prev => ({ ...prev, status: 'Cancelled' }));
+      setTrip(prev => prev ? { ...prev, state: 'Cancelled' } : null);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Payment handling
+  const createPayment = async (rideId) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { intentId } = await paymentService.createPaymentIntent(rideId);
+      return intentId;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmPayment = async (intentId, method = 'card') => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await paymentService.confirmPayment(intentId, method);
+      return result;
+    } catch (err) {
+      setError(err.message);
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -192,12 +161,6 @@ export function BookingProvider({ children }) {
 
   // Reset all state
   const reset = () => {
-    // Clear any active intervals
-    if (driverInterval) {
-      clearInterval(driverInterval);
-      setDriverInterval(null);
-    }
-
     setPickupText('');
     setDropoffText('');
     setQuote(null);
@@ -210,6 +173,7 @@ export function BookingProvider({ children }) {
   };
 
   const value = {
+    // State
     pickupText,
     setPickupText,
     dropoffText,
@@ -222,13 +186,18 @@ export function BookingProvider({ children }) {
     tripProgress,
     loading,
     error,
+    // Quote methods
     getFareQuote,
     clearQuote,
-    createBooking,
-    requestDriver,
-    startTrip,
-    completeTrip,
-    cancelBooking,
+    // Ride methods
+    requestRide,
+    completeRide,
+    cancelRide,
+    updateTripState,
+    // Payment methods
+    createPayment,
+    confirmPayment,
+    // Utility
     reset
   };
 
