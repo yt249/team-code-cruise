@@ -972,7 +972,7 @@ These flow charts collectively represent the union of the system’s possible st
 
 ---
 
-### ** Scenario A: Rider Fare Trend Query (Label: FC3.1) **
+### **Scenario A: Rider Fare Trend Query (Label: FC3.1)**
 
 #### **Scenario Description**
 
@@ -1579,7 +1579,7 @@ Each failure mode has:
 
 ---
 
-# **Summary of Key Technology Justifications**
+## **Summary of Key Technology Justifications**
 
 | Category | Primary Technology | Justification |
 | ----- | ----- | ----- |
@@ -2190,7 +2190,7 @@ Labels match the Architecture/Class specs (e.g., modules/components by name, cla
 
 ---
 
-# **Component-Level Cross-Usage Summary**
+## **Component-Level Cross-Usage Summary**
 
 * **RiderFareTrendPageComponent (SA3.1.1)** uses:
 
@@ -2307,7 +2307,7 @@ const summary = await client.fetchFareTrends(
 
 * **Repositories** (SA3.3.1/3.2) are injected (e.g., via constructor) into Service/Aggregator and called as async TypeScript functions.
 
-# **Data Schemas**
+## **Data Schemas**
 
 This section documents all **database entities** that persist state in the *Rider Fare Trend Experience System*.  
  It explains how data is stored, what runtime classes manage it, how each field maps to database types, and how storage is estimated.  
