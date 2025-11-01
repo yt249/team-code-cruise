@@ -7,7 +7,7 @@ Version & Date: v1.0 – Oct 30, 2025
 Authors & Roles: Yena Wu – Product Manager (requirements)
 
 # **Architecture Diagram**
-
+```mermaid
 graph TB
   %% ---- Visual Classes (colors) ----
   classDef module fill:#E0E0E0,stroke:#4A4A4A,color:#1C1C1C;
@@ -118,7 +118,7 @@ graph TB
 
   %% Service -> Read model / cache / utils
   FareTrendAnalytics2 --> FareTrendStatsRepo
-  FareTrendAnalytics2 -. cache .-> TrendCache
+  FareTrendAnalytics2 -. tz .-> TrendCache
   FareTrendAnalytics2 -. tz .-> TimezoneResolver
   FareTrendAnalytics2 -. routeKey .-> RouteKeyNormalizer
 
@@ -132,6 +132,7 @@ graph TB
   %% Raw data producer
   RideQuotation1 --> FareTrendAnalytics4
   RideQuotation1 -. routeKey .-> RouteKeyNormalizer
+```
 
 
 ## **Legend**
