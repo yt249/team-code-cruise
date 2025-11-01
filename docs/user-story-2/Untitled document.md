@@ -207,8 +207,255 @@ graph TB
 
   * **View Model includes `timezoneLabel` and `insufficientDataThreshold` for UX clarity.**
 
-3. **Class Diagram**  
-   ![][image2]  
+# **Class Diagram**  
+  ```Mermaid
+classDiagram
+  direction TB
+
+  %% =======================
+  %% Client / Presentation side
+  %% =======================
+  class RiderFareTrendPageComponent {
+    <<frontend component>>
+    +initializeView()
+    +handleRouteSelection()
+    +handleTimeWindowChange()
+    +requestTrendData()
+    +renderHeatMap()
+    +renderInsightsPanel()
+  }
+
+  class RiderFareTrendPresenter {
+    <<presenter>>
+    +fromServiceResponse(summary: FareTrendSummary): FareTrendViewModel
+    +identifyCheapest(buckets: FareTrendBucket[]): FareTrendBucket
+    +identifyCostliest(buckets: FareTrendBucket[]): FareTrendBucket
+  }
+
+  class RiderFareTrendClientService {
+    <<client service>>
+    +fetchFareTrends(route: RouteSpecification, timezone: string, window: TimeWindowSelection): FareTrendSummary
+  }
+
+  class FareTrendViewModel {
+    <<view model>>
+    +dailyTimeBuckets: FareTrendBucket[]
+    +cheapestBucket: FareTrendBucket
+    +highestCostBucket: FareTrendBucket
+    +averageFareAcrossAllBuckets: number
+    +timezoneLabel: string
+    +insufficientDataThreshold: number
+  }
+
+  %% =======================
+  %% Web / Server side
+  %% =======================
+  class FareTrendController {
+    <<controller>>
+    +handleGetRouteTrends(req, res): FareTrendSummary
+    +parseRouteCoordinates(req): RouteSpecification
+  }
+
+  class FareTrendService {
+    <<service>>
+    +getRouteTrends(route: RouteSpecification, timezone: string, window: TimeWindowSelection): FareTrendSummary
+    +computeAverages(records: QuoteHistoryRecord[], timezone: string): FareTrendBucket[]
+    +bucketize(records: QuoteHistoryRecord[], timezone: string): Map~string, FareTrendBucket~
+    +invalidateCache(routeKey: string, timezone: string): void
+  }
+
+  %% New read model repository (30d materialized stats)
+  class RoutePriceStatsRepository {
+    <<repository (read model)>>
+    +fetchStats(routeKey: string, timezone: string): FareTrendBucket[]
+    +upsertStats(routeKey: string, timezone: string, buckets: FareTrendBucket[]): void
+    +deleteExpired(expirationDate: Date): number
+  }
+
+  class QuoteHistoryRepository {
+    <<repository (raw facts)>>
+    +appendQuoteRecord(record: QuoteHistoryRecord): void
+    +fetchQuotesForRoute(routeKey: string, start: Date, end: Date): QuoteHistoryRecord[]
+    +purgeOlderThan(cutoff: Date): number
+  }
+
+  class FareTrendAggregator {
+    <<scheduler / ETL>>
+    +start(): void
+    +stop(): void
+    +runAggregationCycle(): void
+    +aggregateRoute(routeKey: string): void
+    +upsertDailyBuckets(routeKey: string, timezone: string, buckets: FareTrendBucket[]): void
+    -lookbackWindowDays: number
+    -aggregationIntervalMinutes: number
+    -outlierPolicy: OutlierPolicy
+  }
+
+  %% Utilities introduced by the new architecture
+  class RouteKeyNormalizer {
+    <<utility>>
+    +composeRouteKey(pickup: CoordinatePair, destination: CoordinatePair): string
+  }
+
+  class TimezoneResolver {
+    <<utility>>
+    +resolve(pickup: CoordinatePair, destination: CoordinatePair, override?: string): string
+  }
+
+  class TrendCache {
+    <<cache>>
+    +get(key: string): FareTrendSummary
+    +set(key: string, value: FareTrendSummary, ttlMinutes: number): void
+    +invalidate(prefix: string): void
+  }
+
+  class PricingService {
+    <<shared service>>
+    +estimate(pickup: CoordinatePair, destination: CoordinatePair): PriceEstimate
+    +applyDiscount(baseAmount: number, percent: number): DiscountResult
+  }
+
+  class LocationService {
+    <<shared service>>
+    +eta(pickup: CoordinatePair, destination: CoordinatePair): number
+  }
+
+  class AuthenticationService {
+    <<shared service>>
+    +required(): void
+    +optional(): void
+    +requireRole(): void
+    +verify(): JwtPayloadOrNull
+  }
+
+  %% =======================
+  %% Data layer
+  %% =======================
+  class PrismaClient {
+    <<data platform>>
+    +query(sql: string): unknown
+    +transaction(): unknown
+  }
+
+  class PostgresDatabase {
+    <<database>>
+    +executeStatement(sql: string): ResultSet
+  }
+
+  %% =======================
+  %% Domain data classes
+  %% =======================
+  class RouteSpecification {
+    <<data>>
+    +pickup: CoordinatePair
+    +destination: CoordinatePair
+  }
+
+  class TimeWindowSelection {
+    <<data>>
+    +windowDays: number  // default 30
+  }
+
+  class FareTrendSummary {
+    <<data>>
+    +routeKey: string
+    +timezone: string
+    +windowDays: number
+    +generatedAt: Date
+    +insufficientDataThreshold: number
+    +buckets: FareTrendBucket[]
+  }
+
+  class FareTrendBucket {
+    <<data>>
+    +dayOfWeek: int    // 0..6
+    +hour: int         // 0..23
+    +averageFareCents: int
+    +rideCount: int
+    +p50Cents: int
+    +p90Cents: int
+  }
+
+  class QuoteHistoryRecord {
+    <<data>>
+    +quoteId: string
+    +routeKey: string
+    +amountCents: int
+    +currency: string
+    +productType: string
+    +startTime: Date
+  }
+
+  %% =======================
+  %% Value types
+  %% =======================
+  class PriceEstimate {
+    <<value>>
+    +amount: number
+    +surge: number
+    +currency: string
+  }
+
+  class DiscountResult {
+    <<value>>
+    +discountedAmount: number
+    +savings: number
+  }
+
+  class JwtPayloadOrNull {
+    <<value>>
+    +present: boolean
+    +payload?: string
+  }
+
+  class OutlierPolicy {
+    <<value>>
+    +method: string  // e.g., "winsorize"
+    +lower: float
+    +upper: float
+  }
+
+  %% =======================
+  %% Associations (usage/aggregation; NOT inheritance)
+  %% =======================
+  RiderFareTrendPageComponent --> RiderFareTrendClientService : requests
+  RiderFareTrendPageComponent --> RiderFareTrendPresenter : uses
+  RiderFareTrendPageComponent --> FareTrendViewModel : displays
+  RiderFareTrendPresenter --> FareTrendSummary : transforms
+  RiderFareTrendPresenter --> FareTrendViewModel : builds
+  RiderFareTrendClientService --> TimezoneResolver : resolves tz (client-side optional)
+  RiderFareTrendClientService --> FareTrendController : calls API
+
+  FareTrendController --> AuthenticationService : auth
+  FareTrendController --> FareTrendService : delegates
+  FareTrendController --> RouteSpecification : parses
+
+  FareTrendService --> RoutePriceStatsRepository : reads    %% read model
+  FareTrendService --> QuoteHistoryRepository : reads (fallback/recompute)
+  FareTrendService --> TrendCache : caches
+  FareTrendService --> RouteKeyNormalizer : normalizes
+  FareTrendService --> TimezoneResolver : tz bucketing
+  FareTrendService --> PricingService : uses
+  FareTrendService --> LocationService : uses
+  FareTrendService --> FareTrendSummary : returns
+  FareTrendService --> TimeWindowSelection : uses
+  FareTrendService --> QuoteHistoryRecord : reads
+
+  FareTrendAggregator --> RoutePriceStatsRepository : upserts
+  FareTrendAggregator --> QuoteHistoryRepository : reads
+  FareTrendAggregator --> QuoteHistoryRecord : aggregates
+  FareTrendAggregator --> TimezoneResolver : tz bucketing
+  FareTrendAggregator --> RouteKeyNormalizer : route key
+  FareTrendAggregator --> OutlierPolicy : uses
+
+  RoutePriceStatsRepository --> PrismaClient : uses
+  QuoteHistoryRepository --> PrismaClient : uses
+  PrismaClient --> PostgresDatabase : connects
+
+  FareTrendSummary --> FareTrendBucket : aggregates
+
+  RiderFareTrendClientService --> TimeWindowSelection : uses
+```
      
      
 4. **List of Classes**
