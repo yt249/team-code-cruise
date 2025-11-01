@@ -163,7 +163,7 @@ graph TB
 
 ---
 
-## **Module Locations Summary (how the user story is fulfilled)**
+## **Module Locations Summary**
 
 * **RideQuotationModule**
 
@@ -208,7 +208,7 @@ graph TB
   * **View Model includes `timezoneLabel` and `insufficientDataThreshold` for UX clarity.**
 
 # **Class Diagram**  
-  ```Mermaid
+  ```mermaid
 classDiagram
   direction TB
 
@@ -458,7 +458,7 @@ classDiagram
 ```
      
      
-4. **List of Classes**
+# **List of Classes**
 
    ## **1\) Rider Fare Trend Experience Module (Frontend)**
 
@@ -591,6 +591,8 @@ These are **data/DTO/value** objects only (no behavior beyond trivial helpers).
 * **SA3.7.9 — OutlierPolicy**  
    **Purpose:** Config struct specifying outlier handling (e.g., winsorize lower/upper).  
    **Implements:** OP-AGG-ROLLUP-30D.
+  
+  ---
 
 ### **Legend for tags**
 
@@ -614,13 +616,13 @@ These are **data/DTO/value** objects only (no behavior beyond trivial helpers).
 
   * **OP-PRIVACY-KANON** — K-anonymity thresholding on buckets.
 
-**5\. State diagram**
+# State diagram
 
-# **System State (Data Fields)**
+## **System State (Data Fields)**
 
 These fields together constitute “the system state” across the read path (rider-facing query) and the ETL path (30-day rollup). They’re grouped by scope.
 
-## **A. Request/Session (volatile, per call)**
+### **A. Request/Session (volatile, per call)**
 
 * `pickup: CoordinatePair`
 
@@ -634,7 +636,7 @@ These fields together constitute “the system state” across the read path (ri
 
 * `jwt: JwtPayloadOrNull`
 
-## **B. Derived (per call / per job)**
+### **B. Derived (per call / per job)**
 
 * `routeKey: string`
 
@@ -644,7 +646,7 @@ These fields together constitute “the system state” across the read path (ri
 
 * `bucketConfig = { dow: 7, hour: 24 }`
 
-## **C. Persistent Stores**
+### **C. Persistent Stores**
 
 * **QuoteHistory** (raw facts)
 
@@ -682,7 +684,7 @@ These fields together constitute “the system state” across the read path (ri
 
   * `lastUpdatedAt: DateTime`
 
-## **D. Cache / Config / Control**
+### **D. Cache / Config / Control**
 
 * **TrendCache**
 
@@ -706,7 +708,7 @@ These fields together constitute “the system state” across the read path (ri
 
   * `lastRunAt: DateTime | null`
 
-## **E. Response (computed)**
+### **E. Response (computed)**
 
 * **FareTrendSummary**
 
@@ -738,12 +740,12 @@ These fields together constitute “the system state” across the read path (ri
 
 ---
 
-# **Scenario A — Rider Query (Read Path)**
+## **Scenario A — Rider Query (Read Path)**
 
 **Initial state:** `RQ0_UI_Idle`  
  **Goal:** return a 7×24 heatmap (last 30 days, tz-aware), using cache or read model.
 
-### **States (unique names \+ actual system state)**
+#### **States (unique names \+ actual system state)**
 
 * **RQ0\_UI\_Idle** *(initial)*  
    UI loaded; `pickup,destination` unset; no network call yet.
@@ -778,7 +780,7 @@ These fields together constitute “the system state” across the read path (ri
 * **RQE\_Error**  
    Any failure (auth invalid, DB error, bad input).
 
-### **Decision predicates used**
+#### **Decision predicates used**
 
 * **P1:** `jwt.present?`
 
@@ -788,7 +790,47 @@ These fields together constitute “the system state” across the read path (ri
 
 * **P4:** `∀b ∈ buckets: b.rideCount >= minSampleThreshold ?` (else flag/omit low-n cells)
 
-![][image3]
+```mermaid
+stateDiagram-v2
+  %% Stereotypes (legend explains)
+  state "RQ0_UI_Idle <<UI>>" as RQ0
+  state "RQ1_UI_RouteSelected <<UI>>" as RQ1
+  state "RQ2_API_RequestDispatched <<API>>" as RQ2
+  state "RQ3_API_Authenticated <<API>>" as RQ3
+  state "RQ4_SVC_CacheCheck <<Service>>" as RQ4
+  state "RQ5_SVC_CacheHit <<Cache>>" as RQ5
+  state "RQ6_SVC_CacheMiss <<Service>>" as RQ6
+  state "RQ7_SVC_StatsLoaded <<Repo(ReadModel)>>" as RQ7
+  state "RQ8_SVC_KAnonApplied <<Service>>" as RQ8
+  state "RQ9_UI_Rendered <<UI>>" as RQ9
+  state "RQE_Error <<Error>>" as RQE
+
+  [*] --> RQ0  : initial
+
+  RQ0 --> RQ1  : RiderFareTrendExperienceModule.RiderFareTrendPageComponent.initializeView\nRiderFareTrendExperienceModule.RiderFareTrendPageComponent.handleRouteSelection
+  RQ1 --> RQ2  : RiderFareTrendExperienceModule.RiderFareTrendClientService.fetchFareTrends
+  RQ2 --> RQ3  : FareTrendAnalyticsModule.FareTrendController.handleGetRouteTrends\nSecurity.AuthenticationService.verify
+  RQ3 --> RQE  : P1=false / unauthorized
+  RQ3 --> RQ4  : P1=true
+
+  RQ4 --> RQ5  : FareTrendAnalyticsModule.FareTrendService.getRouteTrends\nSharedUtilitiesModule.RouteKeyNormalizer.composeRouteKey\nSharedUtilitiesModule.TrendCache.get
+  RQ4 --> RQ6  : FareTrendAnalyticsModule.FareTrendService.getRouteTrends\nSharedUtilitiesModule.RouteKeyNormalizer.composeRouteKey\nSharedUtilitiesModule.TrendCache.get
+
+  note right of RQ4
+    Predicate P2: cache hit?
+  end note
+
+  RQ5 --> RQ9  : RiderFareTrendExperienceModule.RiderFareTrendPresenter.fromServiceResponse
+
+  RQ6 --> RQ7  : FareTrendAnalyticsModule.TimezoneResolver.resolve\nRepositories.RoutePriceStatsRepository.fetchStats
+  RQ7 --> RQ8  : FareTrendAnalyticsModule.FareTrendService.computeAverages / k-anon filter
+  RQ8 --> RQ9  : SharedUtilitiesModule.TrendCache.set\nRiderFareTrendExperienceModule.RiderFareTrendPresenter.fromServiceResponse
+
+  RQ2 --> RQE  : network/parse errors
+  RQ6 --> RQE  : DB failure
+  RQ7 --> RQE  : no stats & cannot fallback
+
+```
 
 **Actual state annotations inside transitions**
 
@@ -798,12 +840,12 @@ These fields together constitute “the system state” across the read path (ri
 
 * After `TrendCache.set`, cache contains latest `summary`.
 
-# **Scenario B — ETL Aggregation (30-Day Rollup)**
+## **Scenario B — ETL Aggregation (30-Day Rollup)**
 
 **Initial state:** `ETL0_Idle`  
  **Goal:** refresh `RoutePriceStats_30d` from `QuoteHistory`, apply outlier policy, and invalidate cache.
 
-### **States (unique names \+ actual system state)**
+#### **States (unique names \+ actual system state)**
 
 * **ETL0\_Idle** *(initial)*  
    Scheduler waiting; `nextRunAt` in future.
@@ -829,13 +871,43 @@ These fields together constitute “the system state” across the read path (ri
 * **ETLE\_Error**  
    Any failure (DB read/write, compute).
 
-### **Decision predicates**
+#### **Decision predicates**
 
 * **Q1:** `records.length > 0 ?`
 
 * **Q2:** `upsert succeeded ?`
 
-![][image4]
+```mermaid
+stateDiagram-v2
+  state "ETL0_Idle <<Scheduler>>" as E0
+  state "ETL1_TickScheduled <<Scheduler>>" as E1
+  state "ETL2_LoadQuotes <<Repo(Raw)>>" as E2
+  state "ETL3_Aggregated <<Service/ETL>>" as E3
+  state "ETL4_StatsUpserted <<Repo(ReadModel)>>" as E4
+  state "ETL5_CacheInvalidated <<Cache>>" as E5
+  state "ETL6_Completed <<Scheduler>>" as E6
+  state "ETLE_Error <<Error>>" as EE
+
+  [*] --> E0 : initial
+  E0 --> E1 : FareTrendAnalyticsModule.FareTrendAggregator.start\nFareTrendAnalyticsModule.FareTrendAggregator.runAggregationCycle
+  E1 --> E2 : Repositories.QuoteHistoryRepository.fetchQuotesForRoute
+
+  state "Q1: any records?" as Q1 <<choice>>
+  E2 --> Q1
+
+  Q1 --> E3 : true / FareTrendAnalyticsModule.RouteKeyNormalizer.composeRouteKey\nFareTrendAnalyticsModule.TimezoneResolver.resolve\nFareTrendAnalyticsModule.FareTrendAggregator.aggregateRoute
+  Q1 --> E4 : false / Repositories.RoutePriceStatsRepository.deleteExpired
+
+  E3 --> E4 : Repositories.RoutePriceStatsRepository.upsertStats
+
+  state "Q2: upsert ok?" as Q2 <<choice>>
+  E4 --> Q2
+
+  Q2 --> E5 : true / SharedUtilitiesModule.TrendCache.invalidate
+  Q2 --> EE : false
+
+  E5 --> E6 : FareTrendAnalyticsModule.FareTrendAggregator.stop  /* end of cycle */
+```
 
 **Actual state annotations inside transitions**
 
@@ -884,7 +956,7 @@ These fields together constitute “the system state” across the read path (ri
 
   **6\. Flow Chart**
 
-# **🧭 Flow Chart Overview**
+# ** Flow Chart Overview**
 
 The flow charts capture the **end-to-end behavioral logic** of the system, illustrating how user and system actions transition through functional states defined in the earlier **State Diagram** section.
 
@@ -900,9 +972,9 @@ These flow charts collectively represent the union of the system’s possible st
 
 ---
 
-## **⚙️ Scenario A: Rider Fare Trend Query (Label: FC3.1)**
+### ** Scenario A: Rider Fare Trend Query (Label: FC3.1)**
 
-### **Scenario Description**
+#### **Scenario Description**
 
 **User Story:**  
  *As a rider planning my regular trips, I want to see the average price for my route broken down by day of week and time of day for the past month so that I can identify when rides are typically cheaper and plan flexible trips accordingly.*
@@ -913,11 +985,48 @@ This scenario starts when the rider opens the “Fare Trend” page and selects 
 
 ---
 
-### **🌐 Flow Chart — Rider Fare Trend Query**
+#### ** Flow Chart — Rider Fare Trend Query**
 
-![][image5]
+```mermaid
+flowchart TD
+  %% --- Styles ---
+  classDef userAction fill:#FFE6E6,stroke:#C40C0C,color:#2D0000;
+  classDef process fill:#D9F1FF,stroke:#0A589C,color:#033158;
+  classDef decision fill:#FFFBD1,stroke:#A68C00,color:#3D3000;
+  classDef data fill:#FDE2C6,stroke:#A05E00,color:#3B1E00;
+  classDef terminator fill:#EDE0FF,stroke:#5C2E91,color:#241240;
 
-### **Flow Explanation**
+  %% --- Nodes ---
+  Start([Start: Rider opens Fare Trend Page]):::terminator
+  SelectRoute["User selects pickup & destination"]:::userAction
+  SendRequest["RiderFareTrendClientService.fetchFareTrends()"]:::userAction
+  Auth["AuthenticationService.verify()"]:::process
+  CacheCheck["TrendCache.get(routeKey|tz|30d)"]:::process
+  CacheHit{"Cache Hit?"}:::decision
+  ReadModel["RoutePriceStatsRepository.fetchStats()"]:::data
+  HasData{"Stats found?"}:::decision
+  ComputeKAnon["FareTrendService.computeAverages()\nApply minSampleThreshold"]:::process
+  CacheSet["TrendCache.set(summary)"]:::process
+  BuildVM["RiderFareTrendPresenter.fromServiceResponse()"]:::process
+  Render["UI renders 7×24 heatmap"]:::userAction
+  Error([Error / Unauthorized / No Data]):::terminator
+  End([End]):::terminator
+
+  %% --- Flows ---
+  Start --> SelectRoute --> SendRequest --> Auth
+  Auth -->|Valid| CacheCheck
+  Auth -->|Invalid| Error
+
+  CacheCheck --> CacheHit
+  CacheHit -->|Yes| BuildVM
+  CacheHit -->|No| ReadModel
+
+  ReadModel --> HasData
+  HasData -->|Yes| ComputeKAnon --> CacheSet --> BuildVM --> Render --> End
+  HasData -->|No| Error
+```
+
+#### **Flow Explanation**
 
 1. The rider opens the page and selects a route → `RiderFareTrendPageComponent.handleRouteSelection`.
 
@@ -937,11 +1046,40 @@ This scenario starts when the rider opens the “Fare Trend” page and selects 
 
 ---
 
-### **📡 Sequence Diagram — Rider Fare Trend Query**
+#### ** Sequence Diagram — Rider Fare Trend Query**
 
-![][image6]
+```mermaid
+sequenceDiagram
+  autonumber
+  participant U as UI (PageComponent)
+  participant CS as ClientService
+  participant C as Controller
+  participant S as Service
+  participant CA as TrendCache
+  participant R as RoutePriceStatsRepo
+  participant P as Presenter
 
-### **Explanation**
+  U->>CS: handleRouteSelection()
+  CS->>C: fetchFareTrends(origin,dest,timezone,30d)
+  C->>S: getRouteTrends()
+  S->>CA: get(routeKey|tz|window)
+  alt cache hit
+      CA-->>S: FareTrendSummary
+  else cache miss
+      S->>R: fetchStats(routeKey,tz)
+      R-->>S: stats[]
+      S->>S: computeAverages()\napply minSampleThreshold
+      S->>CA: set(summary)
+  end
+  S-->>C: FareTrendSummary
+  C-->>CS: FareTrendSummary
+  CS-->>U: FareTrendSummary
+  U->>P: fromServiceResponse(summary)
+  P-->>U: FareTrendViewModel
+  U->>U: renderHeatMap()
+```
+
+#### **Explanation**
 
 This sequence shows the end-to-end interaction between frontend and backend components.
 
@@ -953,9 +1091,9 @@ This sequence shows the end-to-end interaction between frontend and backend comp
 
 ---
 
-## **🧮 Scenario B: Fare Trend ETL Aggregation (Label: FC3.2)**
+### ** Scenario B: Fare Trend ETL Aggregation (Label: FC3.2)**
 
-### **Scenario Description**
+#### **Scenario Description**
 
 **System Story:**  
  *As a backend scheduler, I aggregate all fare quotes from the last 30 days, group them by day of week and hour, apply outlier and k-anonymity filters, and update the RoutePriceStats repository so that riders can quickly retrieve historical averages.*
@@ -964,11 +1102,33 @@ The scenario begins when the scheduler triggers its aggregation cycle and ends w
 
 ---
 
-### **⚙️ Flow Chart — Fare Trend ETL Aggregation**
+#### ** Flow Chart — Fare Trend ETL Aggregation**
 
-![][image7]
+```mermaid
+flowchart TD
+  classDef process fill:#D9F1FF,stroke:#0A589C,color:#033158;
+  classDef decision fill:#FFFBD1,stroke:#A68C00,color:#3D3000;
+  classDef data fill:#FDE2C6,stroke:#A05E00,color:#3B1E00;
+  classDef terminator fill:#EDE0FF,stroke:#5C2E91,color:#241240;
 
-### **Flow Explanation**
+  Start([Start: Scheduler tick]):::terminator
+  LoadQuotes["QuoteHistoryRepository.fetchQuotesForRoute()"]:::data
+  AnyRecords{"Records found?"}:::decision
+  Aggregate["FareTrendAggregator.aggregateRoute()\nTimezoneResolver.resolve()\nRouteKeyNormalizer.composeRouteKey()"]:::process
+  UpsertStats["RoutePriceStatsRepository.upsertStats()"]:::data
+  Success{"Upsert successful?"}:::decision
+  InvalidateCache["TrendCache.invalidate(prefix=routeKey|tz|30d)"]:::process
+  End([End: Cycle completed]):::terminator
+  Error([Error / No data / Upsert failed]):::terminator
+
+  Start --> LoadQuotes --> AnyRecords
+  AnyRecords -->|Yes| Aggregate --> UpsertStats --> Success
+  AnyRecords -->|No| Error
+  Success -->|Yes| InvalidateCache --> End
+  Success -->|No| Error
+```
+
+#### **Flow Explanation**
 
 1. Scheduler triggers the **FareTrendAggregator.runAggregationCycle()**.
 
@@ -982,11 +1142,33 @@ The scenario begins when the scheduler triggers its aggregation cycle and ends w
 
 ---
 
-### **🔁 Sequence Diagram — Fare Trend ETL Aggregation**
+#### ** Sequence Diagram — Fare Trend ETL Aggregation**
 
-![][image8]
+```mermaid
+sequenceDiagram
+  autonumber
+  participant SCH as Scheduler (Aggregator)
+  participant QH as QuoteHistoryRepo
+  participant RK as RouteKeyNormalizer
+  participant TZ as TimezoneResolver
+  participant RS as RoutePriceStatsRepo
+  participant CA as TrendCache
 
-# **🗂️ Flow Chart Legend**
+  SCH->>QH: fetchQuotesForRoute(last30d)
+  alt records found
+      SCH->>RK: composeRouteKey(origin,dest)
+      SCH->>TZ: resolve(origin,dest)
+      SCH->>SCH: aggregateRoute()
+      SCH->>RS: upsertStats(routeKey,tz,buckets)
+      RS-->>SCH: success
+      SCH->>CA: invalidate(prefix=routeKey|tz|30d)
+  else no records
+      SCH->>SCH: skip route
+  end
+  SCH-->>SCH: schedule next run
+```
+
+## ** Flow Chart Legend**
 
 | Symbol | Meaning |
 | ----- | ----- |
@@ -995,9 +1177,8 @@ The scenario begins when the scheduler triggers its aggregation cycle and ends w
 | **Diamond** | Decision (predicate evaluation) |
 | **Parallelogram** | Data access or repository operation |
 
-**7\. Threat and Failures**
 
-# **⚠️ Possible Threats and Failures**
+# ** Possible Threats and Failures**
 
 This section enumerates all identifiable failure modes within the **Rider Fare Trend Experience Module** and **Fare Trend Analytics Backend**, including their causes, impacts, detection/diagnostic methods, and recovery procedures.
 
@@ -1015,7 +1196,7 @@ Each failure mode has:
 
   ---
 
-  ## **🧩 Legend**
+  ### ** Legend**
 
 | Field | Meaning |
 | ----- | ----- |
@@ -1026,7 +1207,7 @@ Each failure mode has:
 
   ---
 
-  ## **1️⃣ Rider-Side Failures (Frontend / API Layer)**
+  ### **1️⃣ Rider-Side Failures (Frontend / API Layer)**
 
   ### **FM1.1 — Authentication Failure**
 
@@ -1293,7 +1474,7 @@ Each failure mode has:
 
 ---
 
-   # **📊 Failure Likelihood and Impact Matrix**
+   # ** Failure Likelihood and Impact Matrix**
 
 | Label | Failure Name | Likelihood | Impact | Overall Risk Level |
 | ----- | ----- | ----- | ----- | ----- |
@@ -1313,7 +1494,7 @@ Each failure mode has:
 | FM3.2 | Inference Risk (Privacy) | Low | High | **High** |
 | FM3.3 | Injection / Validation Flaw | Medium-Low | High | **High** |
 
-**8\. Technologies**
+# ** Technologies**
 
 # 
 
@@ -1322,7 +1503,7 @@ Each failure mode has:
 
 ---
 
-## **🧭 Legend**
+## ** Legend**
 
 | Field | Meaning |
 | ----- | ----- |
@@ -1411,12 +1592,6 @@ Each failure mode has:
 | **Observability** | **Prometheus \+ Grafana** | **Full-stack metrics, alerting, and visualization for reliability.** |
 | **CI/CD** | **GitHub Actions** | **Seamless testing and container deployment pipeline.** |
 
-**9\. APIS**
-
-*Perfect 👍 — here’s the **APIs** section rewritten to include **descriptions**, **return types**, and **parameter types** for each method, while maintaining the proper hierarchy (Module → Class → Method).*  
- *All class/module labels match your **Architecture Diagram** and **Class Diagram**.*
-
----
 
 # ***⚙️ APIs***
 
@@ -1608,7 +1783,7 @@ Each failure mode has:
 
 ---
 
-**10\. Public Interfaces**
+# ** Public Interfaces**
 
 Below is the **Public Interfaces** section for the *Rider Fare Trend Experience & Fare Trend Analytics System*.  
  It shows **only public methods**, grouped by **who uses them** (same component, other components in the same module, or cross-module).  
