@@ -2307,7 +2307,7 @@ const summary = await client.fetchFareTrends(
 
 * **Repositories** (SA3.3.1/3.2) are injected (e.g., via constructor) into Service/Aggregator and called as async TypeScript functions.
 
-## **Data Schemas**
+# **Data Schemas**
 
 This section documents all **database entities** that persist state in the *Rider Fare Trend Experience System*.  
  It explains how data is stored, what runtime classes manage it, how each field maps to database types, and how storage is estimated.  
