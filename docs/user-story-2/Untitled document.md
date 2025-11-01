@@ -1,6 +1,8 @@
 1. **Header**
 
-**1\. Header Title: Development Specification: Ride Price Trends Feature Version & Date: v1.0 – Sept 24, 2025 Authors & Roles: Yena Wu – Product Manager (requirements)**
+Header Title: Development Specification: Ride Price Trends Feature 
+Version & Date: v1.0 – Oct 30, 2025 
+Authors & Roles: Yena Wu – Product Manager (requirements)
 
 2. **Architecture Diagram**
 
