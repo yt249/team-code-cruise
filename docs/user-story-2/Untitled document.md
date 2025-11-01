@@ -1,12 +1,138 @@
-1. **Header**
+# **Header**
 
 Header Title: Development Specification: Ride Price Trends Feature 
+
 Version & Date: v1.0 – Oct 30, 2025 
+
 Authors & Roles: Yena Wu – Product Manager (requirements)
 
-2. **Architecture Diagram**
+# **Architecture Diagram**
 
-**![][image1]**
+graph TB
+  %% ---- Visual Classes (colors) ----
+  classDef module fill:#E0E0E0,stroke:#4A4A4A,color:#1C1C1C;
+  classDef frontend fill:#FFE6E6,stroke:#C40C0C,color:#2D0000;
+  classDef viewmodel fill:#FFFBD1,stroke:#A68C00,color:#3D3000;
+  classDef clientService fill:#E0F7F4,stroke:#00796B,color:#00352F;
+  classDef controller fill:#E6ECFF,stroke:#2030A0,color:#0D1540;
+  classDef service fill:#D9F1FF,stroke:#0A589C,color:#033158;
+  classDef repository fill:#FDE2C6,stroke:#A05E00,color:#3B1E00;
+  classDef scheduler fill:#EDE0FF,stroke:#5C2E91,color:#241240;
+
+  %% =========================
+  %% Rider Fare Trend Experience Module
+  %% =========================
+  subgraph RiderFareTrendExperienceModule ["RiderFareTrendExperienceModule Rider Fare Trend Experience Module"]
+    direction TB
+
+    RiderFareTrendExperience0["RiderFareTrendExperience0 Experience Module Container<br/>Fields<br/>——————————————————<br/>- containedElements: string list<br/>Methods<br/>——————————————————<br/>- describeComposition(): void"]:::module
+
+    RiderFareTrendExperience1["RiderFareTrendExperience1 Rider Fare Trend Page Component<br/>Fields<br/>——————————————————<br/>- trendData: FareTrendViewModel | null<br/>- pickupCoordinate: CoordinatePair<br/>- destinationCoordinate: CoordinatePair<br/>- selectedTimeWindow: TimeWindowSelection (default=Last30Days)<br/>- selectedTimezone: string<br/>- loadingIndicator: boolean<br/>- errorMessage: string | null<br/>Methods<br/>——————————————————<br/>- initializeView(): void<br/>- handleRouteSelection(): void<br/>- handleTimeWindowChange(): void<br/>- requestTrendData(): void<br/>- renderHeatMap(): void<br/>- renderInsightsPanel(): void"]:::frontend
+
+    RiderFareTrendExperience2["RiderFareTrendExperience2 Rider Fare Trend View Model<br/>Fields<br/>——————————————————<br/>- dailyTimeBuckets: FareTrendBucketList (7x24)<br/>- cheapestBucket: FareTrendBucket | null<br/>- highestCostBucket: FareTrendBucket | null<br/>- averageFareAcrossAllBuckets: number<br/>- insufficientDataThreshold: number (k-anon)<br/>- timezoneLabel: string<br/>Methods<br/>——————————————————<br/>(no methods)"]:::viewmodel
+
+    RiderFareTrendExperience4["RiderFareTrendExperience4 Rider Fare Trend Presenter<br/>Fields<br/>——————————————————<br/>- none: null<br/>Methods<br/>——————————————————<br/>- fromServiceResponse(): FareTrendViewModel<br/>- bucketByDayOfWeek(): FareTrendBucketList<br/>- identifyCheapestWindow(): FareTrendBucket | null<br/>- identifyCostliestWindow(): FareTrendBucket | null"]:::frontend
+
+    RiderFareTrendExperience3["RiderFareTrendExperience3 Rider Fare Trend Client Service<br/>Fields<br/>——————————————————<br/>- serviceEndpointAddress: string (/v1/insights/route-prices)<br/>- credentialProvider: AuthenticationTokenProvider<br/>- networkClient: NetworkClient<br/>Methods<br/>——————————————————<br/>- fetchFareTrends(origin,dest,timezone,window='30d'): Promise&lt;FareTrendSummary&gt;<br/>- constructRequestAddress(): string<br/>- includeAuthorizationHeader(): Record&lt;string,string&gt;<br/>- handleErrorResponse(): never"]:::clientService
+  end
+
+  %% =========================
+  %% Fare Trend Analytics Module
+  %% =========================
+  subgraph FareTrendAnalyticsModule ["FareTrendAnalyticsModule Fare Trend Analytics Module"]
+    direction TB
+
+    FareTrendAnalytics0["FareTrendAnalytics0 Analytics Module Container<br/>Fields<br/>——————————————————<br/>- containedElements: string list<br/>Methods<br/>——————————————————<br/>- describeComposition(): void"]:::module
+
+    FareTrendAnalytics1["FareTrendAnalytics1 Fare Trend Controller<br/>Fields<br/>——————————————————<br/>- fareTrendService: FareTrendService<br/>- requestSchema: FareTrendRequestSchema<br/>Methods<br/>——————————————————<br/>- registerHypertextHandlers(): void<br/>- handleGetRouteTrends(): Promise&lt;void&gt;  /* GET /v1/insights/route-prices */<br/>- parseRouteCoordinates(): RouteSpecification<br/>- buildResponseModel(): FareTrendPresentation"]:::controller
+
+    FareTrendAnalytics2["FareTrendAnalytics2 Fare Trend Service<br/>Fields<br/>——————————————————<br/>- trendRepository: FareTrendRepository  /* read model */<br/>- quoteHistoryRepository: QuoteHistoryRepository  /* raw quotes/trips */<br/>- trendCacheMap: Map&lt;RouteTimeKeyString,FareTrendSummary&gt; | CacheClient<br/>- bucketConfiguration: BucketConfiguration {dow:7,hour:24}<br/>- timezoneResolver: TimezoneResolver<br/>- routeKeyNormalizer: RouteKeyNormalizer<br/>- minSampleThreshold: number (k-anon)<br/>Methods<br/>——————————————————<br/>- getRouteTrends(route,timezone,window): Promise&lt;FareTrendSummary&gt;<br/>- computeAveragesForBuckets(records): FareTrendBucketList<br/>- bucketizeQuotes(records): Map&lt;RouteTimeKeyString,FareTrendBucket&gt;<br/>- invalidateCacheForRoute(routeKey): void<br/>- persistFreshAggregations(summary): Promise&lt;void&gt;"]:::service
+
+    %% ---- Read model for fast lookups (30d rolling) ----
+    FareTrendStatsRepo["FareTrendAnalytics6 Route Price Stats Repository (30d Read Model)<br/>Fields<br/>——————————————————<br/>- databaseClient: PrismaClient<br/>- tableName: RoutePriceStats_30d<br/>- primaryKey: (route_key, tz, product_type, dow, hour)<br/>Methods<br/>——————————————————<br/>- fetchStats(routeKey,tz): Promise&lt;FareTrendBucketList&gt;<br/>- upsertStats(buckets): Promise&lt;void&gt;<br/>- deleteExpired(): Promise&lt;number&gt;"]:::repository
+
+    FareTrendAnalytics3["FareTrendAnalytics3 Fare Trend Repository (Deprecated direct agg store)<br/>Fields<br/>——————————————————<br/>- databaseClient: PrismaClient<br/>- tableName: string<br/>Methods<br/>——————————————————<br/>- fetchAggregatedTrends(): Promise&lt;FareTrendBucketList&gt;<br/>- saveAggregatedTrends(): Promise&lt;void&gt;<br/>- deleteExpiredAggregations(): Promise&lt;number&gt;"]:::repository
+
+    FareTrendAnalytics4["FareTrendAnalytics4 Quote History Repository<br/>Fields<br/>——————————————————<br/>- databaseClient: PrismaClient<br/>- tableName: QuoteHistory<br/>Methods<br/>——————————————————<br/>- appendQuoteRecord(): Promise&lt;void&gt;<br/>- fetchQuotesForRoute(routeKey,lookbackDays): Promise&lt;QuoteHistoryRecord[]&gt;<br/>- purgeOlderThan(days): Promise&lt;number&gt;"]:::repository
+
+    FareTrendAnalytics5["FareTrendAnalytics5 Fare Trend Aggregator (Scheduler/ETL)<br/>Fields<br/>——————————————————<br/>- scheduleIdentifier: SchedulerHandle | null<br/>- lookbackWindowDays: number (30)<br/>- aggregationIntervalMinutes: number (60)<br/>- statsRepository: Route Price Stats Repository<br/>- quoteHistoryRepository: QuoteHistoryRepository<br/>- timezoneResolver: TimezoneResolver<br/>- routeKeyNormalizer: RouteKeyNormalizer<br/>- outlierPolicy: Winsorize(1%,99%)<br/>Methods<br/>——————————————————<br/>- start(): void<br/>- stop(): void<br/>- runAggregationCycle(): Promise&lt;void&gt;<br/>- aggregateRoute(routeKey): Promise&lt;void&gt;<br/>- upsertDailyBuckets(buckets): Promise&lt;void&gt;"]:::scheduler
+  end
+
+  %% =========================
+  %% Shared Utilities Module
+  %% =========================
+  subgraph SharedUtilitiesModule ["SharedUtilitiesModule Shared Utilities"]
+    direction TB
+    RouteKeyNormalizer["RouteKeyNormalizer Utility<br/>Fields<br/>——————————————————<br/>- h3Resolution: number | radiusMeters<br/>Methods<br/>——————————————————<br/>- composeRouteKey(origin,dest): RouteKeyString"]:::service
+
+    TimezoneResolver["TimezoneResolver Utility<br/>Fields<br/>——————————————————<br/>- provider: TZDB | MapsTZ<br/>Methods<br/>——————————————————<br/>- resolve(origin,dest,override?): string"]:::service
+
+    TrendCache["TrendCache Layer (Redis/CDN)<br/>Fields<br/>——————————————————<br/>- ttlMinutes: number (15)<br/>Methods<br/>——————————————————<br/>- get(key): FareTrendSummary | null<br/>- set(key,value): void<br/>- invalidate(prefix): void"]:::service
+  end
+
+  %% =========================
+  %% Ride Quotation Module
+  %% =========================
+  subgraph RideQuotationModule ["RideQuotationModule Ride Quotation Module"]
+    direction TB
+
+    RideQuotation0["RideQuotation0 Quotation Module Container<br/>Fields<br/>——————————————————<br/>- containedElements: string list<br/>Methods<br/>——————————————————<br/>- describeComposition(): void"]:::module
+
+    RideQuotation1["RideQuotation1 Quote Service<br/>Fields<br/>——————————————————<br/>- statelessMarker: string (&quot;no stored fields&quot;)<br/>Methods<br/>——————————————————<br/>- getQuote(): Promise&lt;FareQuote&gt;<br/>- recordQuoteForTrendAnalysis(fare,origin,dest,productType): Promise&lt;void&gt;<br/>- composeRouteKey(origin,dest): RouteKeyString"]:::service
+  end
+
+  %% =========================
+  %% Containment Links (container boxes connect to classes they contain)
+  %% =========================
+  RiderFareTrendExperience0 --> RiderFareTrendExperience1
+  RiderFareTrendExperience0 --> RiderFareTrendExperience2
+  RiderFareTrendExperience0 --> RiderFareTrendExperience4
+  RiderFareTrendExperience0 --> RiderFareTrendExperience3
+
+  FareTrendAnalytics0 --> FareTrendAnalytics1
+  FareTrendAnalytics0 --> FareTrendAnalytics2
+  FareTrendAnalytics0 --> FareTrendStatsRepo
+  FareTrendAnalytics0 --> FareTrendAnalytics3
+  FareTrendAnalytics0 --> FareTrendAnalytics4
+  FareTrendAnalytics0 --> FareTrendAnalytics5
+
+  RideQuotation0 --> RideQuotation1
+
+  SharedUtilitiesModule --> RouteKeyNormalizer
+  SharedUtilitiesModule --> TimezoneResolver
+  SharedUtilitiesModule --> TrendCache
+
+  %% =========================
+  %% Functional Relations
+  %% =========================
+  %% Frontend
+  RiderFareTrendExperience1 --> RiderFareTrendExperience3
+  RiderFareTrendExperience1 --> RiderFareTrendExperience4
+  RiderFareTrendExperience4 --> RiderFareTrendExperience2
+
+  %% API path
+  RiderFareTrendExperience3 --> FareTrendAnalytics1
+
+  %% Controller -> Service
+  FareTrendAnalytics1 --> FareTrendAnalytics2
+
+  %% Service -> Read model / cache / utils
+  FareTrendAnalytics2 --> FareTrendStatsRepo
+  FareTrendAnalytics2 -. cache .-> TrendCache
+  FareTrendAnalytics2 -. tz .-> TimezoneResolver
+  FareTrendAnalytics2 -. routeKey .-> RouteKeyNormalizer
+
+  %% ETL scheduler
+  FareTrendAnalytics5 --> FareTrendAnalytics4
+  FareTrendAnalytics5 --> FareTrendStatsRepo
+  FareTrendAnalytics5 -. tz .-> TimezoneResolver
+  FareTrendAnalytics5 -. routeKey .-> RouteKeyNormalizer
+  FareTrendAnalytics5 -.-> FareTrendAnalytics2
+
+  %% Raw data producer
+  RideQuotation1 --> FareTrendAnalytics4
+  RideQuotation1 -. routeKey .-> RouteKeyNormalizer
+
 
 ## **Legend**
 
