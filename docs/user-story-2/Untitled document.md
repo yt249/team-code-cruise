@@ -3080,3 +3080,8 @@ In summary: most risks stem not from language difficulty, but from *integration 
 
 * **Compliance: Encryption, access control, and institutional audits maintain long-term data safety.**  
 
+# **chat log**
+https://chatgpt.com/share/6905ad6d-5650-800d-9b0e-ac5fcb9fa892
+
+
+
