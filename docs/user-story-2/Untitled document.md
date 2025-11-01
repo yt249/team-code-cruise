@@ -921,7 +921,7 @@ stateDiagram-v2
 
 ---
 
-## **Legend (for both diagrams)**
+### **Legend (for both diagrams)**
 
 * **Stereotypes (angled brackets)**
 
@@ -954,9 +954,9 @@ stateDiagram-v2
   * **Q1, Q2** — ETL-path predicates  
      Each outgoing edge is labeled with the predicate outcome (`true/false`) that leads to the destination.
 
- # **6\. Flow Chart**
+ # **Flow Chart**
 
- ### ** Flow Chart Overview **
+ ### **Flow Chart Overview**
 
 The flow charts capture the **end-to-end behavioral logic** of the system, illustrating how user and system actions transition through functional states defined in the earlier **State Diagram** section.
 
@@ -974,7 +974,7 @@ These flow charts collectively represent the union of the system’s possible st
 
 ### ** Scenario A: Rider Fare Trend Query (Label: FC3.1) **
 
-#### ** Scenario Description **
+#### **Scenario Description**
 
 **User Story:**  
  *As a rider planning my regular trips, I want to see the average price for my route broken down by day of week and time of day for the past month so that I can identify when rides are typically cheaper and plan flexible trips accordingly.*
@@ -985,7 +985,7 @@ This scenario starts when the rider opens the “Fare Trend” page and selects 
 
 ---
 
-#### ** Flow Chart — Rider Fare Trend Query **
+#### **Flow Chart — Rider Fare Trend Query**
 
 ```mermaid
 flowchart TD
@@ -1046,7 +1046,7 @@ flowchart TD
 
 ---
 
-#### ** Sequence Diagram — Rider Fare Trend Query **
+#### **Sequence Diagram — Rider Fare Trend Query**
 
 ```mermaid
 sequenceDiagram
@@ -1091,7 +1091,7 @@ This sequence shows the end-to-end interaction between frontend and backend comp
 
 ---
 
-### ** Scenario B: Fare Trend ETL Aggregation (Label: FC3.2) **
+### **Scenario B: Fare Trend ETL Aggregation (Label: FC3.2)**
 
 #### **Scenario Description**
 
@@ -1102,7 +1102,7 @@ The scenario begins when the scheduler triggers its aggregation cycle and ends w
 
 ---
 
-#### ** Flow Chart — Fare Trend ETL Aggregation**
+#### **Flow Chart — Fare Trend ETL Aggregation**
 
 ```mermaid
 flowchart TD
@@ -1142,7 +1142,7 @@ flowchart TD
 
 ---
 
-#### ** Sequence Diagram — Fare Trend ETL Aggregation **
+#### **Sequence Diagram — Fare Trend ETL Aggregation**
 
 ```mermaid
 sequenceDiagram
@@ -1168,7 +1168,7 @@ sequenceDiagram
   SCH-->>SCH: schedule next run
 ```
 
-## ** Flow Chart Legend **
+## **Flow Chart Legend**
 
 | Symbol | Meaning |
 | ----- | ----- |
@@ -1178,7 +1178,7 @@ sequenceDiagram
 | **Parallelogram** | Data access or repository operation |
 
 
-# ** Possible Threats and Failures **
+# **Possible Threats and Failures**
 
 This section enumerates all identifiable failure modes within the **Rider Fare Trend Experience Module** and **Fare Trend Analytics Backend**, including their causes, impacts, detection/diagnostic methods, and recovery procedures.
 
@@ -1196,7 +1196,7 @@ Each failure mode has:
 
   ---
 
-  #### ** Legend **
+  #### **Legend**
 
 | Field | Meaning |
 | ----- | ----- |
@@ -1474,7 +1474,7 @@ Each failure mode has:
 
 ---
 
-   ## ** Failure Likelihood and Impact Matrix **
+   ## **Failure Likelihood and Impact Matrix**
 
 | Label | Failure Name | Likelihood | Impact | Overall Risk Level |
 | ----- | ----- | ----- | ----- | ----- |
@@ -1494,7 +1494,7 @@ Each failure mode has:
 | FM3.2 | Inference Risk (Privacy) | Low | High | **High** |
 | FM3.3 | Injection / Validation Flaw | Medium-Low | High | **High** |
 
-# ** Technologies **
+# **Technologies**
 
 
 **This system integrates a range of established open-source and commercial technologies to support frontend visualization, backend analytics, data persistence, scheduling, and infrastructure.**  
@@ -1502,7 +1502,7 @@ Each failure mode has:
 
 ---
 
-### ** Legend **
+### **Legend**
 
 | Field | Meaning |
 | ----- | ----- |
@@ -1579,7 +1579,7 @@ Each failure mode has:
 
 ---
 
-# ** Summary of Key Technology Justifications**
+# **Summary of Key Technology Justifications**
 
 | Category | Primary Technology | Justification |
 | ----- | ----- | ----- |
@@ -1592,7 +1592,7 @@ Each failure mode has:
 | **CI/CD** | **GitHub Actions** | **Seamless testing and container deployment pipeline.** |
 
 
-# ** APIs **
+# **APIs**
 
 *This section defines the **application programming interfaces** (APIs) implemented by all classes and components in the Rider Fare Trend Experience System.*  
  *Each method is described with:*
@@ -1782,7 +1782,7 @@ Each failure mode has:
 
 ---
 
-# ** Public Interfaces **
+# **Public Interfaces**
 
 Below is the **Public Interfaces** section for the *Rider Fare Trend Experience & Fare Trend Analytics System*.  
  It shows **only public methods**, grouped by **who uses them** (same component, other components in the same module, or cross-module).  
@@ -2861,7 +2861,7 @@ This module is the **heart of the analytics system**, dealing with **data retrie
 
 ---
 
-## **✅ Summary**
+## **Summary**
 
 Overall project completion risk is **Moderate (3/5)**:
 
