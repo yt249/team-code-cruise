@@ -17,7 +17,7 @@ jobs:
     # Run all shell commands from the frontend folder by default
     defaults:
       run:
-        working-directory: team-code-cruise/frontend
+        working-directory: frontend
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -28,7 +28,7 @@ jobs:
           node-version: 20.x
           cache: npm
           # Use the frontend's lockfile for cache key
-          cache-dependency-path: team-code-cruise/frontend/package-lock.json
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -43,7 +43,7 @@ jobs:
     # Run all shell commands from the frontend folder by default
     defaults:
       run:
-        working-directory: team-code-cruise/frontend
+        working-directory: frontend
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -54,7 +54,7 @@ jobs:
           node-version: 20.x
           cache: npm
           # Use the frontend's lockfile for cache key
-          cache-dependency-path: team-code-cruise/frontend/package-lock.json
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies (allows new test deps)
         run: npm install
@@ -71,7 +71,7 @@ jobs:
     # Run all shell commands from the backend folder by default
     defaults:
       run:
-        working-directory: team-code-cruise/backend
+        working-directory: backend
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -82,7 +82,7 @@ jobs:
           node-version: 20.x
           cache: npm
           # Use the backend's lockfile for cache key
-          cache-dependency-path: team-code-cruise/backend/package-lock.json
+          cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies
         run: npm ci
