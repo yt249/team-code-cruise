@@ -29,8 +29,6 @@ jobs:
           cache: npm
           # Use the frontend's lockfile for cache key
           cache-dependency-path: frontend/package-lock.json
-      - name: Ensure npm cache dir exists
-        run: mkdir -p "$(npm config get cache)"
 
       - name: Install dependencies
         run: npm ci
@@ -57,8 +55,6 @@ jobs:
           cache: npm
           # Use the frontend's lockfile for cache key
           cache-dependency-path: frontend/package-lock.json
-      - name: Ensure npm cache dir exists
-        run: mkdir -p "$(npm config get cache)"
 
       - name: Install dependencies (allows new test deps)
         run: npm install
@@ -87,8 +83,6 @@ jobs:
           cache: npm
           # Use the backend's lockfile for cache key
           cache-dependency-path: backend/package-lock.json
-      - name: Ensure npm cache dir exists
-        run: mkdir -p "$(npm config get cache)"
 
       - name: Install dependencies
         run: npm ci
