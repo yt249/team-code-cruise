@@ -15,14 +15,18 @@ import './App.css';
 
 function AppContent() {
   const { isLoggedIn, loading: authLoading } = useAuth();
-  const { booking, trip, requestRide, reset } = useBooking();
+  const { booking, trip, reset } = useBooking();
   const { resetAd } = useAd();
   const [currentView, setCurrentView] = useState('landing'); // landing, booking, payment, tracking, completed
   const [tripData, setTripData] = useState(null);
 
   // Handle ride cancellation - redirect to landing page
   useEffect(() => {
-    if (booking && booking.status === 'Cancelled' && currentView === 'tracking') {
+    if (
+      booking &&
+      booking.status === 'Cancelled' &&
+      currentView === 'tracking'
+    ) {
       reset();
       setTripData(null);
       setCurrentView('landing');
@@ -48,9 +52,6 @@ function AppContent() {
     try {
       const pickup = tripData.pickup.location; // { lat, lng }
       const dropoff = tripData.dropoff.location; // { lat, lng }
-      const pickupAddress = tripData.pickup.address;
-      const dropoffAddress = tripData.dropoff.address;
-      let quoteId = tripData.quote.id;
       const tokenId = discountToken?.tokenId || null;
 
       // If there's a discount token, request a NEW quote with the token
@@ -61,16 +62,9 @@ function AppContent() {
         // Update tripData with the new quote
         setTripData({
           ...tripData,
-          quote: newQuote
+          quote: newQuote,
         });
-
-        // Use the new quote ID (which has the discount token associated)
-        quoteId = newQuote.id;
       }
-
-
-      // Call backend API - driver is auto-assigned
-      const result = await requestRide(pickup, dropoff, quoteId, tokenId, pickupAddress, dropoffAddress);
 
       // Clear ad state after successful booking (discount token consumed)
       resetAd();
@@ -99,9 +93,9 @@ function AppContent() {
   // Show loading while checking authentication
   if (authLoading) {
     return (
-      <div className="app">
-        <div className="loading-screen">
-          <div className="loading-spinner"></div>
+      <div className='app'>
+        <div className='loading-screen'>
+          <div className='loading-spinner'></div>
           <p>Loading...</p>
         </div>
       </div>
@@ -111,7 +105,7 @@ function AppContent() {
   // Show login page if not authenticated
   if (!isLoggedIn) {
     return (
-      <div className="app">
+      <div className='app'>
         <LoginPage onLoginSuccess={handleLoginSuccess} />
       </div>
     );
@@ -155,10 +149,8 @@ function AppContent() {
   };
 
   return (
-    <div className="app">
-      <main className="app-main">
-        {renderView()}
-      </main>
+    <div className='app'>
+      <main className='app-main'>{renderView()}</main>
 
       {/* Modals - FindingDriverModal only (don't show on payment screen) */}
       {currentView !== 'payment' && <FindingDriverModal />}

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { rideService } from '../services/rideService';
 import { paymentService } from '../services/paymentService';
@@ -31,6 +32,7 @@ export function BookingProvider({ children }) {
   const routePathRef = useRef(null); // Store route path for animation
 
   // Simulate driver movement towards pickup following actual roads
+   
   useEffect(() => {
     // Only start animation when trip state changes to DriverEnRoute
     if (!trip || trip.state !== 'DriverEnRoute' || !booking || !booking.pickup) {
@@ -129,9 +131,12 @@ export function BookingProvider({ children }) {
         driverAnimationRef.current = null;
       }
     };
-  }, [trip?.state]); // Only depend on trip state change
+  }, 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [trip?.state]); // Only depend on trip state change
 
   // Simulate driver movement from pickup to destination during trip following actual roads
+   
   useEffect(() => {
     // Only start animation when trip state changes to InTrip
     if (!trip || trip.state !== 'InTrip' || !booking || !booking.pickup || !booking.dropoff) {
@@ -217,7 +222,9 @@ export function BookingProvider({ children }) {
         driverAnimationRef.current = null;
       }
     };
-  }, [trip?.state]); // Only depend on trip state change
+  }, 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [trip?.state]); // Only depend on trip state change
 
   // Get fare quote (with optional discount token)
   const getFareQuote = async (pickup, dropoff, tokenId = null) => {

@@ -1,9 +1,32 @@
 import { useEffect, useRef, useState } from 'react';
 import './Map.css';
 
+// Dark theme map styles (module-level constant)
+const darkMapStyles = [
+  { elementType: 'geometry', stylers: [{ color: '#1a1a1a' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#0a0a0a' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#a0a0a0' }] },
+  {
+    featureType: 'administrative.locality',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#FFD60A' }],
+  },
+  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#666666' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#1f3a1f' }] },
+  { featureType: 'poi.park', elementType: 'labels.text.fill', stylers: [{ color: '#4d7d4d' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2a2a2a' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#333333' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#3d3d3d' }] },
+  { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#4d4d4d' }] },
+  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#808080' }] },
+  { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#2a2a2a' }] },
+  { featureType: 'transit.station', elementType: 'labels.text.fill', stylers: [{ color: '#666666' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0d1f2e' }] },
+  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#3d5a6e' }] },
+];
+
 // Initialize the map callback globally
-window.initMap = function() {
-};
+window.initMap = function () {};
 
 export default function Map({
   pickup,
@@ -13,7 +36,7 @@ export default function Map({
   routeCompleted = false,
   driverPosition = null,
   useDirections = false,
-  nearbyDrivers = []
+  nearbyDrivers = [],
 }) {
   const mapRef = useRef(null);
   const googleMapRef = useRef(null);
@@ -22,91 +45,25 @@ export default function Map({
   const directionsRendererRef = useRef(null);
   const boundsFittedRef = useRef(false);
   const userInteractedRef = useRef(false);
-  const routeRenderedRef = useRef(false);
   const routeRequestInProgressRef = useRef(false);
   const lastRenderedRouteRef = useRef(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const previousDriverPositionRef = useRef(null);
   const [driverHeading, setDriverHeading] = useState(0);
 
-  // Dark theme map styles
-  const darkMapStyles = [
-    { elementType: "geometry", stylers: [{ color: "#1a1a1a" }] },
-    { elementType: "labels.text.stroke", stylers: [{ color: "#0a0a0a" }] },
-    { elementType: "labels.text.fill", stylers: [{ color: "#a0a0a0" }] },
-    {
-      featureType: "administrative.locality",
-      elementType: "labels.text.fill",
-      stylers: [{ color: "#FFD60A" }],
-    },
-    {
-      featureType: "poi",
-      elementType: "labels.text.fill",
-      stylers: [{ color: "#666666" }],
-    },
-    {
-      featureType: "poi.park",
-      elementType: "geometry",
-      stylers: [{ color: "#1f3a1f" }],
-    },
-    {
-      featureType: "poi.park",
-      elementType: "labels.text.fill",
-      stylers: [{ color: "#4d7d4d" }],
-    },
-    {
-      featureType: "road",
-      elementType: "geometry",
-      stylers: [{ color: "#2a2a2a" }],
-    },
-    {
-      featureType: "road",
-      elementType: "geometry.stroke",
-      stylers: [{ color: "#333333" }],
-    },
-    {
-      featureType: "road.highway",
-      elementType: "geometry",
-      stylers: [{ color: "#3d3d3d" }],
-    },
-    {
-      featureType: "road.highway",
-      elementType: "geometry.stroke",
-      stylers: [{ color: "#4d4d4d" }],
-    },
-    {
-      featureType: "road",
-      elementType: "labels.text.fill",
-      stylers: [{ color: "#808080" }],
-    },
-    {
-      featureType: "transit",
-      elementType: "geometry",
-      stylers: [{ color: "#2a2a2a" }],
-    },
-    {
-      featureType: "transit.station",
-      elementType: "labels.text.fill",
-      stylers: [{ color: "#666666" }],
-    },
-    {
-      featureType: "water",
-      elementType: "geometry",
-      stylers: [{ color: "#0d1f2e" }],
-    },
-    {
-      featureType: "water",
-      elementType: "labels.text.fill",
-      stylers: [{ color: "#3d5a6e" }],
-    },
-  ];
+  
 
   // Initialize Google Map
   useEffect(() => {
     const checkGoogleMaps = setInterval(() => {
-      if (window.google && window.google.maps && mapRef.current && !googleMapRef.current) {
+      if (
+        window.google &&
+        window.google.maps &&
+        mapRef.current &&
+        !googleMapRef.current
+      ) {
         // Determine initial center based on available data
-        let initialCenter = { lat: 40.7580, lng: -73.9855 }; // Default to NYC
+        let initialCenter = { lat: 40.758, lng: -73.9855 }; // Default to NYC
         let initialZoom = 13;
 
         if (currentLocation) {
@@ -121,7 +78,9 @@ export default function Map({
         const isMobile = window.innerWidth <= 768;
         // On mobile: UI takes bottom 1/3 (33.33vh), so center in top 2/3 area
         // Bottom padding = 1/2 of bottom panel height = 16.67% of viewport
-        const mobilePadding = isMobile ? { bottom: window.innerHeight * 0.1667 } : undefined;
+        const mobilePadding = isMobile
+          ? { bottom: window.innerHeight * 0.1667 }
+          : undefined;
 
         const map = new window.google.maps.Map(mapRef.current, {
           center: initialCenter,
@@ -135,10 +94,10 @@ export default function Map({
           rotateControl: false,
           fullscreenControl: !isMobile, // Enable on desktop only
           fullscreenControlOptions: {
-            position: window.google.maps.ControlPosition.RIGHT_TOP
+            position: window.google.maps.ControlPosition.RIGHT_TOP,
           },
           // Add bottom padding on mobile so visual center is in top 2/3 area
-          ...(mobilePadding && { padding: mobilePadding })
+          ...(mobilePadding && { padding: mobilePadding }),
         });
 
         googleMapRef.current = map;
@@ -158,7 +117,6 @@ export default function Map({
     return () => clearInterval(checkGoogleMaps);
   }, [currentLocation, pickup]);
 
-
   // SEPARATE EFFECT: Render route (runs independently of markers)
   useEffect(() => {
     if (!mapLoaded || !googleMapRef.current || !window.google) {
@@ -169,7 +127,6 @@ export default function Map({
 
     // If showRoute is false or locations are missing, clear any existing route
     if (!showRoute || !pickup || !destination) {
-
       if (directionsRendererRef.current) {
         directionsRendererRef.current.setMap(null);
         directionsRendererRef.current = null;
@@ -186,10 +143,12 @@ export default function Map({
     const routeKey = `${pickup.lat},${pickup.lng}-${destination.lat},${destination.lng}`;
 
     // Skip if we already rendered this exact route
-    if (lastRenderedRouteRef.current === routeKey && directionsRendererRef.current) {
+    if (
+      lastRenderedRouteRef.current === routeKey &&
+      directionsRendererRef.current
+    ) {
       return;
     }
-
 
     // ALWAYS clear any existing route FIRST (even if request in progress)
     // This ensures old routes disappear when user changes destination
@@ -218,11 +177,10 @@ export default function Map({
           strokeColor: routeCompleted ? '#00E676' : '#40C4FF',
           strokeOpacity: 1.0,
           strokeWeight: 4,
-        }
+        },
       });
 
       directionsRendererRef.current = directionsRenderer;
-
 
       directionsService.route(
         {
@@ -265,7 +223,14 @@ export default function Map({
       routePolylineRef.current = polyline;
       lastRenderedRouteRef.current = routeKey;
     }
-  }, [mapLoaded, showRoute, pickup, destination, useDirections, routeCompleted]);
+  }, [
+    mapLoaded,
+    showRoute,
+    pickup,
+    destination,
+    useDirections,
+    routeCompleted,
+  ]);
 
   // Update markers
   useEffect(() => {
@@ -284,7 +249,7 @@ export default function Map({
         markersRef.current[key] = new window.google.maps.Marker({
           ...config,
           position,
-          map
+          map,
         });
       }
       bounds.extend(position);
@@ -344,7 +309,6 @@ export default function Map({
 
     // Add or update driver marker with smooth animation (CAR ICON)
     if (driverPosition) {
-
       // Calculate heading if we have a previous position
       let currentHeading = driverHeading;
       if (previousDriverPositionRef.current) {
@@ -352,14 +316,15 @@ export default function Map({
         const curr = driverPosition;
 
         // Calculate bearing from previous to current position using Haversine formula
-        const lat1 = prev.lat * Math.PI / 180;
-        const lat2 = curr.lat * Math.PI / 180;
-        const dLon = (curr.lng - prev.lng) * Math.PI / 180;
+        const lat1 = (prev.lat * Math.PI) / 180;
+        const lat2 = (curr.lat * Math.PI) / 180;
+        const dLon = ((curr.lng - prev.lng) * Math.PI) / 180;
 
         const y = Math.sin(dLon) * Math.cos(lat2);
-        const x = Math.cos(lat1) * Math.sin(lat2) -
-                  Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
-        currentHeading = Math.atan2(y, x) * 180 / Math.PI;
+        const x =
+          Math.cos(lat1) * Math.sin(lat2) -
+          Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+        currentHeading = (Math.atan2(y, x) * 180) / Math.PI;
 
         setDriverHeading(currentHeading);
       }
@@ -392,13 +357,17 @@ export default function Map({
           </svg>
         `)}`,
         scaledSize: new window.google.maps.Size(50, 50),
-        anchor: new window.google.maps.Point(25, 25)
+        anchor: new window.google.maps.Point(25, 25),
       };
 
       if (markersRef.current.driver) {
         // Smooth animation for existing marker
         const currentPos = markersRef.current.driver.getPosition();
-        if (currentPos && (currentPos.lat() !== driverPosition.lat || currentPos.lng() !== driverPosition.lng)) {
+        if (
+          currentPos &&
+          (currentPos.lat() !== driverPosition.lat ||
+            currentPos.lng() !== driverPosition.lng)
+        ) {
           markersRef.current.driver.setPosition(driverPosition);
           markersRef.current.driver.setIcon(carIcon);
         }
@@ -413,7 +382,6 @@ export default function Map({
           zIndex: 1000,
         });
       }
-    } else {
     }
 
     // Add or update current location marker (blue dot)
@@ -451,10 +419,9 @@ export default function Map({
 
     // Add or update nearby driver markers
     if (nearbyDrivers && nearbyDrivers.length > 0) {
-
       // Remove markers for drivers that are no longer in the list
-      const nearbyDriverIds = nearbyDrivers.map(d => `nearby-${d.id}`);
-      Object.keys(markersRef.current).forEach(key => {
+      const nearbyDriverIds = nearbyDrivers.map((d) => `nearby-${d.id}`);
+      Object.keys(markersRef.current).forEach((key) => {
         if (key.startsWith('nearby-') && !nearbyDriverIds.includes(key)) {
           markersRef.current[key].setMap(null);
           delete markersRef.current[key];
@@ -462,7 +429,7 @@ export default function Map({
       });
 
       // Add or update markers for each nearby driver (CAR ICONS)
-      nearbyDrivers.forEach(driver => {
+      nearbyDrivers.forEach((driver) => {
         const markerKey = `nearby-${driver.id}`;
 
         // Car icon for nearby drivers - gray version
@@ -484,7 +451,7 @@ export default function Map({
             </svg>
           `)}`,
           scaledSize: new window.google.maps.Size(42, 42),
-          anchor: new window.google.maps.Point(21, 21)
+          anchor: new window.google.maps.Point(21, 21),
         };
 
         updateOrCreateMarker(markerKey, driver.location, {
@@ -495,7 +462,7 @@ export default function Map({
       });
     } else {
       // Remove all nearby driver markers if list is empty
-      Object.keys(markersRef.current).forEach(key => {
+      Object.keys(markersRef.current).forEach((key) => {
         if (key.startsWith('nearby-')) {
           markersRef.current[key].setMap(null);
           delete markersRef.current[key];
@@ -510,31 +477,39 @@ export default function Map({
     // 1. First time markers are added (boundsFittedRef is false)
     // 2. Pickup or destination changes (new route)
     // 3. User hasn't interacted with the map
-    const hasMarkers = pickup || destination || currentLocation || (nearbyDrivers && nearbyDrivers.length > 0);
-    const shouldFitBounds = hasMarkers && !userInteractedRef.current && !boundsFittedRef.current;
-
+    const hasMarkers =
+      pickup ||
+      destination ||
+      currentLocation ||
+      (nearbyDrivers && nearbyDrivers.length > 0);
+    const shouldFitBounds =
+      hasMarkers && !userInteractedRef.current && !boundsFittedRef.current;
 
     if (shouldFitBounds && bounds && !bounds.isEmpty()) {
-
       // Add mobile padding to fitBounds so markers fit in visible area
       // On mobile: bottom UI is 1/3, so use 16.67% padding to center in top 2/3
       const isMobile = window.innerWidth <= 768;
-      const padding = isMobile ? { bottom: window.innerHeight * 0.1667, top: 80, left: 20, right: 20 } : 50;
+      const padding = isMobile
+        ? { bottom: window.innerHeight * 0.1667, top: 80, left: 20, right: 20 }
+        : 50;
 
       map.fitBounds(bounds, padding);
       boundsFittedRef.current = true;
-
-      // Add some zoom limit
-      const listener = window.google.maps.event.addListenerOnce(map, 'bounds_changed', () => {
-        if (map.getZoom() > 15) {
-          map.setZoom(15);
-        }
-      });
     }
 
     // Reset boundsFitted when route changes (pickup/destination change)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapLoaded, pickup, destination, currentLocation, showRoute, routeCompleted, driverPosition, useDirections, nearbyDrivers, driverHeading]);
+  }, [
+    mapLoaded,
+    pickup,
+    destination,
+    currentLocation,
+    showRoute,
+    routeCompleted,
+    driverPosition,
+    useDirections,
+    nearbyDrivers,
+    driverHeading,
+  ]);
 
   // Center map on driver during trip
   useEffect(() => {
@@ -567,7 +542,6 @@ export default function Map({
     // then this reset effect clears the renderer before the API returns.
 
     // We also do NOT reset routeRequestInProgressRef - let the API callback handle it
-
   }, [pickup, destination]);
 
   // Reset bounds when nearby drivers change
@@ -578,15 +552,15 @@ export default function Map({
   }, [nearbyDrivers]);
 
   return (
-    <div className="map-container">
+    <div className='map-container'>
       <div
         ref={mapRef}
-        className="google-map"
+        className='google-map'
         style={{ width: '100%', height: '100%' }}
       />
       {!mapLoaded && (
-        <div className="map-loading">
-          <div className="spinner"></div>
+        <div className='map-loading'>
+          <div className='spinner'></div>
           <p>Loading Map...</p>
         </div>
       )}

@@ -1,9 +1,7 @@
-import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import './LandingPage.css';
 
 export default function LandingPage({ onGetStarted }) {
-  const [animationComplete, setAnimationComplete] = useState(false);
   const { logout } = useAuth();
 
   const handleLogout = () => {

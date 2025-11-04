@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState } from 'react';
 import { adService } from '../services/advertisementService';
 
@@ -52,12 +53,13 @@ export function AdProvider({ children }) {
         ...session,
         baseFare: baseFare,
         discountAmount: baseFare * (percent / 100),
-        finalFare: baseFare - (baseFare * (percent / 100)),
+        finalFare: baseFare - baseFare * (percent / 100),
         ad: {
-          videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
+          videoUrl:
+            'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
           duration: 30,
-          advertiser: session.provider || 'CodeCruise Ads'
-        }
+          advertiser: session.provider || 'CodeCruise Ads',
+        },
       };
 
       setAdSession(enrichedSession);
@@ -180,12 +182,8 @@ export function AdProvider({ children }) {
     completeAd,
     skipAd,
     closeAdOffer,
-    resetAd
+    resetAd,
   };
 
-  return (
-    <AdContext.Provider value={value}>
-      {children}
-    </AdContext.Provider>
-  );
+  return <AdContext.Provider value={value}>{children}</AdContext.Provider>;
 }

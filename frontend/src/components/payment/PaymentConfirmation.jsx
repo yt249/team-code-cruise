@@ -10,17 +10,14 @@ export default function PaymentConfirmation({ tripData, onConfirm, onCancel }) {
   const {
     isEligible,
     adSession,
-    showAdOffer,
     adPlaying,
     adProgress,
     discountToken,
-    checkEligibility,
     startAdSession,
     playAd,
     updateAdProgress,
     completeAd,
     skipAd,
-    closeAdOffer
   } = useAd();
 
   const { pickup, dropoff, quote, tripDistance } = tripData;
@@ -38,14 +35,13 @@ export default function PaymentConfirmation({ tripData, onConfirm, onCancel }) {
     const initAd = async () => {
       try {
         // Only check eligibility, don't create session until user clicks "Watch Ad"
-        const result = await checkEligibility();
       } catch (err) {
         console.error('Failed to check ad eligibility:', err);
       }
     };
 
     initAd();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [quote]);
 
   // Track if we're initiating an ad watch

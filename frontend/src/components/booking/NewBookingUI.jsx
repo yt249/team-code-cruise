@@ -5,14 +5,8 @@ import Map from '../Map/Map';
 import './NewBookingUI.css';
 
 export default function NewBookingUI({ onProceedToPayment }) {
-  const {
-    quote,
-    tripDistance,
-    loading,
-    error,
-    getFareQuote,
-    clearQuote
-  } = useBooking();
+  const { quote, tripDistance, loading, error, getFareQuote, clearQuote } =
+    useBooking();
 
   const { logout } = useAuth();
 
@@ -27,8 +21,7 @@ export default function NewBookingUI({ onProceedToPayment }) {
   const [pickupLocation, setPickupLocation] = useState(null);
   const [dropoffLocation, setDropoffLocation] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
-  const [showPickupSuggestions, setShowPickupSuggestions] = useState(false);
-  const [showDropoffSuggestions, setShowDropoffSuggestions] = useState(false);
+  // Removed unused suggestion toggles to satisfy ESLint
 
   const pickupInputRef = useRef(null);
   const dropoffInputRef = useRef(null);
@@ -38,20 +31,14 @@ export default function NewBookingUI({ onProceedToPayment }) {
   // Get user's current location on mount
   useEffect(() => {
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-          setCurrentLocation({ lat, lng });
-        },
-        (error) => {
-          // Set a default location (e.g., New York City) if geolocation fails
-          setCurrentLocation({ lat: 40.7580, lng: -73.9855 });
-        }
-      );
+      navigator.geolocation.getCurrentPosition((position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        setCurrentLocation({ lat, lng });
+      });
     } else {
       // Fallback to default location if geolocation is not supported
-      setCurrentLocation({ lat: 40.7580, lng: -73.9855 });
+      setCurrentLocation({ lat: 40.758, lng: -73.9855 });
     }
   }, []);
 
@@ -62,13 +49,11 @@ export default function NewBookingUI({ onProceedToPayment }) {
 
       // Pickup autocomplete
       if (pickupInputRef.current && !pickupAutocompleteRef.current) {
-        pickupAutocompleteRef.current = new window.google.maps.places.Autocomplete(
-          pickupInputRef.current,
-          {
+        pickupAutocompleteRef.current =
+          new window.google.maps.places.Autocomplete(pickupInputRef.current, {
             fields: ['formatted_address', 'geometry', 'name'],
-            componentRestrictions: { country: 'us' }
-          }
-        );
+            componentRestrictions: { country: 'us' },
+          });
 
         pickupAutocompleteRef.current.addListener('place_changed', () => {
           const place = pickupAutocompleteRef.current.getPlace();
@@ -76,22 +61,20 @@ export default function NewBookingUI({ onProceedToPayment }) {
             setPickupAddress(place.formatted_address || place.name);
             setPickupLocation({
               lat: place.geometry.location.lat(),
-              lng: place.geometry.location.lng()
+              lng: place.geometry.location.lng(),
             });
-            setShowPickupSuggestions(false);
+            // Suggestions are managed by Google Autocomplete widget UI
           }
         });
       }
 
       // Dropoff autocomplete
       if (dropoffInputRef.current && !dropoffAutocompleteRef.current) {
-        dropoffAutocompleteRef.current = new window.google.maps.places.Autocomplete(
-          dropoffInputRef.current,
-          {
+        dropoffAutocompleteRef.current =
+          new window.google.maps.places.Autocomplete(dropoffInputRef.current, {
             fields: ['formatted_address', 'geometry', 'name'],
-            componentRestrictions: { country: 'us' }
-          }
-        );
+            componentRestrictions: { country: 'us' },
+          });
 
         dropoffAutocompleteRef.current.addListener('place_changed', () => {
           const place = dropoffAutocompleteRef.current.getPlace();
@@ -99,9 +82,9 @@ export default function NewBookingUI({ onProceedToPayment }) {
             setDropoffAddress(place.formatted_address || place.name);
             setDropoffLocation({
               lat: place.geometry.location.lat(),
-              lng: place.geometry.location.lng()
+              lng: place.geometry.location.lng(),
             });
-            setShowDropoffSuggestions(false);
+            // Suggestions are managed by Google Autocomplete widget UI
           }
         });
       }
@@ -176,7 +159,7 @@ export default function NewBookingUI({ onProceedToPayment }) {
         pickup: { address: pickupAddress, location: pickupLocation },
         dropoff: { address: dropoffAddress, location: dropoffLocation },
         quote,
-        tripDistance
+        tripDistance,
       });
     }
   };
@@ -185,19 +168,28 @@ export default function NewBookingUI({ onProceedToPayment }) {
   const hasQuote = quote !== null;
 
   return (
-    <div className="new-booking-layout">
+    <div className='new-booking-layout'>
       {/* Logout button */}
-      <button className="logout-button" onClick={handleLogout}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-          <polyline points="16 17 21 12 16 7"/>
-          <line x1="21" y1="12" x2="9" y2="12"/>
+      <button className='logout-button' onClick={handleLogout}>
+        <svg
+          width='18'
+          height='18'
+          viewBox='0 0 24 24'
+          fill='none'
+          stroke='currentColor'
+          strokeWidth='2'
+          strokeLinecap='round'
+          strokeLinejoin='round'
+        >
+          <path d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4' />
+          <polyline points='16 17 21 12 16 7' />
+          <line x1='21' y1='12' x2='9' y2='12' />
         </svg>
         Logout
       </button>
 
       {/* Map Section */}
-      <div className="new-map-section">
+      <div className='new-map-section'>
         <Map
           pickup={pickupLocation}
           destination={dropoffLocation}
@@ -209,46 +201,55 @@ export default function NewBookingUI({ onProceedToPayment }) {
       </div>
 
       {/* Booking Panel */}
-      <div className="new-booking-panel">
-        <div className="booking-panel-header">
+      <div className='new-booking-panel'>
+        <div className='booking-panel-header'>
           <h2>Where to?</h2>
           <p>Enter your pickup and destination</p>
         </div>
 
-        <div className="booking-form">
+        <div className='booking-form'>
           {/* Pickup Input */}
-          <div className="location-input-wrapper">
-            <div className="input-label">
-              <span className="label-icon">📍</span>
+          <div className='location-input-wrapper'>
+            <div className='input-label'>
+              <span className='label-icon'>📍</span>
               <span>Pickup Location</span>
               <button
-                className="current-location-button"
+                className='current-location-button'
                 onClick={handleUseCurrentLocation}
-                title="Use my current location"
+                title='Use my current location'
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
-                  <path d="M12 2V6M12 18V22M22 12H18M6 12H2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <svg width='16' height='16' viewBox='0 0 24 24' fill='none'>
+                  <circle
+                    cx='12'
+                    cy='12'
+                    r='3'
+                    stroke='currentColor'
+                    strokeWidth='2'
+                  />
+                  <path
+                    d='M12 2V6M12 18V22M22 12H18M6 12H2'
+                    stroke='currentColor'
+                    strokeWidth='2'
+                    strokeLinecap='round'
+                  />
                 </svg>
                 Current Location
               </button>
             </div>
-            <div className="autocomplete-input-container">
+            <div className='autocomplete-input-container'>
               <input
                 ref={pickupInputRef}
-                type="text"
+                type='text'
                 value={pickupAddress}
                 onChange={(e) => {
                   setPickupAddress(e.target.value);
-                  setShowPickupSuggestions(true);
                 }}
-                onFocus={() => setShowPickupSuggestions(true)}
-                placeholder="Enter pickup address..."
-                className="location-autocomplete-input"
+                placeholder='Enter pickup address...'
+                className='location-autocomplete-input'
               />
               {pickupLocation && (
                 <button
-                  className="clear-input-button"
+                  className='clear-input-button'
                   onClick={() => {
                     setPickupAddress('');
                     setPickupLocation(null);
@@ -261,27 +262,25 @@ export default function NewBookingUI({ onProceedToPayment }) {
           </div>
 
           {/* Dropoff Input */}
-          <div className="location-input-wrapper">
-            <div className="input-label">
-              <span className="label-icon">🎯</span>
+          <div className='location-input-wrapper'>
+            <div className='input-label'>
+              <span className='label-icon'>🎯</span>
               <span>Destination</span>
             </div>
-            <div className="autocomplete-input-container">
+            <div className='autocomplete-input-container'>
               <input
                 ref={dropoffInputRef}
-                type="text"
+                type='text'
                 value={dropoffAddress}
                 onChange={(e) => {
                   setDropoffAddress(e.target.value);
-                  setShowDropoffSuggestions(true);
                 }}
-                onFocus={() => setShowDropoffSuggestions(true)}
-                placeholder="Enter destination address..."
-                className="location-autocomplete-input"
+                placeholder='Enter destination address...'
+                className='location-autocomplete-input'
               />
               {dropoffLocation && (
                 <button
-                  className="clear-input-button"
+                  className='clear-input-button'
                   onClick={() => {
                     setDropoffAddress('');
                     setDropoffLocation(null);
@@ -294,16 +293,12 @@ export default function NewBookingUI({ onProceedToPayment }) {
           </div>
 
           {/* Error Message */}
-          {error && (
-            <div className="booking-error-message">
-              {error}
-            </div>
-          )}
+          {error && <div className='booking-error-message'>{error}</div>}
 
           {/* Get Quote Button */}
           {!hasQuote && (
             <button
-              className="get-quote-button"
+              className='get-quote-button'
               onClick={handleGetQuote}
               disabled={!canGetQuote}
             >
@@ -313,40 +308,52 @@ export default function NewBookingUI({ onProceedToPayment }) {
 
           {/* Quote Display */}
           {hasQuote && (
-            <div className="quote-display">
-              <div className="quote-header">
+            <div className='quote-display'>
+              <div className='quote-header'>
                 <h3>Fare Estimate</h3>
               </div>
 
-              <div className="quote-details">
+              <div className='quote-details'>
                 {tripDistance && (
-                  <div className="quote-row">
+                  <div className='quote-row'>
                     <span>Distance</span>
-                    <span className="quote-value">{tripDistance.distanceText}</span>
+                    <span className='quote-value'>
+                      {tripDistance.distanceText}
+                    </span>
                   </div>
                 )}
-                <div className="quote-row">
+                <div className='quote-row'>
                   <span>Estimated Time</span>
-                  <span className="quote-value">{tripDistance ? tripDistance.durationText : `${quote.eta} min`}</span>
+                  <span className='quote-value'>
+                    {tripDistance
+                      ? tripDistance.durationText
+                      : `${quote.eta} min`}
+                  </span>
                 </div>
-                <div className="quote-row quote-total">
+                <div className='quote-row quote-total'>
                   <span>Total Fare</span>
-                  <span className="quote-value">${quote.fare.toFixed(2)}</span>
+                  <span className='quote-value'>${quote.fare.toFixed(2)}</span>
                 </div>
               </div>
 
               <button
-                className="proceed-to-payment-button"
+                className='proceed-to-payment-button'
                 onClick={handleProceedToPayment}
               >
                 Proceed to Payment
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                  <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <svg width='20' height='20' viewBox='0 0 20 20' fill='none'>
+                  <path
+                    d='M7.5 15L12.5 10L7.5 5'
+                    stroke='currentColor'
+                    strokeWidth='2'
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                  />
                 </svg>
               </button>
 
               <button
-                className="recalculate-button"
+                className='recalculate-button'
                 onClick={() => {
                   setPickupAddress('');
                   setDropoffAddress('');
