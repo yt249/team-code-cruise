@@ -194,10 +194,54 @@ VITE_API_BASE_URL=http://localhost:3000
 
 ## 🧪 Testing
 
-### Manual Testing Flow
+### Backend Unit Tests (Manual)
 
-1. Start services: `./start-dev.sh`
-2. Open frontend: http://localhost:5173
+Run the backend test suite locally using Jest. These tests cover ride lifecycle logic, discount flows, and helper utilities.
+
+#### Prerequisites
+
+- **Node.js v20** (matches CI); install from [nodejs.org](https://nodejs.org)
+- **npm 10+** (bundled with Node 20)
+- **Prisma CLI** (installed automatically via `npm install`)
+
+> The backend uses Jest, ts-jest, Prisma Client, and in-memory data stores. No PostgreSQL instance is required for tests.
+
+#### Setup
+
+```bash
+cd backend
+npm install        # installs dependencies listed in backend/package.json
+npm run prisma:gen # generates @prisma/client types used in tests
+```
+
+- `npm install` fetches runtime libs (Express, Prisma) and dev tooling (Jest, ts-jest).
+- `npm run prisma:gen` ensures `@prisma/client` enums (e.g., `RideStatus`) exist before running tests.
+
+#### Running Tests
+
+```bash
+cd backend
+npm test           # runs Jest with RB_DATA_MODE=memory, JWT_SECRET=test-secret
+```
+
+The backend `test` script automatically sets the required environment variables:
+
+- `RB_DATA_MODE=memory` – use the in-memory store instead of PostgreSQL
+- `JWT_SECRET=test-secret` – satisfies JWT validation during tests
+- `TMPDIR=./.tmp` – ensures Jest can create temporary files inside the repo
+
+To view per-test output or coverage:
+
+```bash
+# Verbose mode (prints every test)
+npm test -- --verbose
+
+# Coverage report
+npm test -- --coverage
+```
+
+The Jest suite lives in `backend/tests/rideService.spec.ts` and `backend/tests/discountService.spec.ts`. Coverage reports are written to `backend/coverage/`.
+
 3. Login with `rider@example.com` / `ride1234`
 4. Test ride booking:
    - Enter pickup coordinates: `{ lat: 37.7749, lng: -122.4194 }`
