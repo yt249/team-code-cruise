@@ -12,7 +12,7 @@
     "prisma:push": "prisma db push --schema=../database/prisma/schema.prisma",
     "prisma:migrate": "prisma migrate dev --schema=../database/prisma/schema.prisma",
     "lint": "eslint .",
-    "test": "RB_DATA_MODE=memory JWT_SECRET=test-secret node --test --import tsx ./tests/userStory*.test.ts"
+    "test": "TMPDIR=./.tmp RB_DATA_MODE=memory JWT_SECRET=test-secret jest --runInBand"
   },
   "dependencies": {
     "@prisma/client": "^5.19.1",
@@ -28,10 +28,14 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.12",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^22.18.13",
     "eslint": "^9.11.0",
+    "jest": "^29.7.0",
     "prisma": "^5.19.1",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3"
   },

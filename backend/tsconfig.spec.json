@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "types": ["jest"],
+    "module": "ES2022",
+    "moduleResolution": "Bundler"
+  },
+  "include": ["src/**/*", "tests/**/*"]
+}
