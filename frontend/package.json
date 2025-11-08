@@ -8,8 +8,10 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "pretest": "npm run lint",
     "test": "jest",
     "test:watch": "jest --watch",
+    "pretest:ci": "npm run lint",
     "test:ci": "jest --coverage"
   },
   "dependencies": {
