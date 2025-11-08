@@ -133,6 +133,32 @@ describe('rideService', () => {
     expect(result.dropoff).toEqual({ lat: 3, lng: 4 })
   })
 
+  test('cancelRide sends POST and returns server response JSON', async () => {
+    const server = { status: 'CANCELLED', rideId: 'r1' }
+    global.fetch = jest.fn().mockResolvedValueOnce(mockResponse(200, server))
+    rideService = require('../src/services/rideService').rideService
+    const result = await rideService.cancelRide('r1')
+    expect(result).toEqual(server)
+    expect(global.fetch).toHaveBeenCalledTimes(1)
+    const [url, init] = global.fetch.mock.calls[0]
+    expect(url).toMatch(/\/rides\/r1\/cancel$/)
+    expect(init.method).toBe('POST')
+    expect(init.headers.Authorization).toBe('Bearer test-token')
+  })
+
+  test('completeRide sends POST and returns server response JSON', async () => {
+    const server = { status: 'COMPLETED', rideId: 'r1' }
+    global.fetch = jest.fn().mockResolvedValueOnce(mockResponse(200, server))
+    rideService = require('../src/services/rideService').rideService
+    const result = await rideService.completeRide('r1')
+    expect(result).toEqual(server)
+    expect(global.fetch).toHaveBeenCalledTimes(1)
+    const [url, init] = global.fetch.mock.calls[0]
+    expect(url).toMatch(/\/rides\/r1\/complete$/)
+    expect(init.method).toBe('POST')
+    expect(init.headers.Authorization).toBe('Bearer test-token')
+  })
+
   test('cancelRide requires auth', async () => {
     getAuthToken.mockReturnValue(null)
     rideService = require('../src/services/rideService').rideService
