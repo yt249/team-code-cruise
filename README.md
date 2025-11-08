@@ -211,6 +211,38 @@ Notes
 - Frontend tests default to the Node environment for fast, logic-focused tests. Use `/** @jest-environment jsdom */` at the top of a test file if you need a DOM.
 - Coverage runs in CI by default; local runs skip coverage for speed. Coverage reports are ignored in git.
 
+#### Run Tests Only (Fresh Clone)
+
+If you just cloned the repo and only want to run unit tests (no app startup):
+
+- Requirements
+  - Node.js 20.x (recommended)
+  - npm (bundled with Node)
+
+- Frontend tests
+  1. `cd frontend`
+  2. `npm install`
+     - Installs test tooling: Jest, @swc/jest, @swc/core, identity-obj-proxy, ESLint
+     - No Babel needed; SWC handles JS/JSX
+  3. `npm test`
+     - Runs ESLint first (via `pretest`), then Jest
+  4. (Optional) `npm run test:ci` for coverage output
+
+- Backend tests
+  1. `cd backend`
+  2. `npm install`
+     - Installs test tooling: Jest, @swc/jest, @swc/core, TypeScript, @types/jest
+  3. (Optional, only if you see Prisma type errors) `npm run prisma:gen`
+     - Generates `@prisma/client` for any code paths that import it
+  4. `npm test`
+     - Compiles TypeScript (via `pretest`) and runs Jest
+  5. (Optional) `npm run test:ci` for coverage output
+
+Notes
+- Tests do not require the backend server to be running—HTTP calls are mocked.
+- If you need to point tests at a custom backend URL, set `VITE_API_BASE_URL` in the environment when running tests (defaults to `http://localhost:3000`).
+- No global installs are needed; all tooling is pulled from local `devDependencies`.
+
 ### Manual Testing Flow
 
 1. Start services: `./start-dev.sh`
