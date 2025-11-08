@@ -194,6 +194,23 @@ VITE_API_BASE_URL=http://localhost:3000
 
 ## 🧪 Testing
 
+### Unit Tests (Jest)
+
+- Backend
+  - Run: `cd backend && npm test`
+  - Watch: `cd backend && npm run test:watch`
+  - Coverage (local, optional): `cd backend && npm run test:ci`
+
+- Frontend
+  - Run: `cd frontend && npm test`
+  - Watch: `cd frontend && npm run test:watch`
+  - Coverage (local, optional): `cd frontend && npm run test:ci`
+
+Notes
+- Jest is configured with SWC; no Babel/ts-jest required.
+- Frontend tests default to the Node environment for fast, logic-focused tests. Use `/** @jest-environment jsdom */` at the top of a test file if you need a DOM.
+- Coverage runs in CI by default; local runs skip coverage for speed. Coverage reports are ignored in git.
+
 ### Manual Testing Flow
 
 1. Start services: `./start-dev.sh`
