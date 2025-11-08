@@ -1,6 +1,6 @@
 # CI pipeline for linting and tests
 # - Lints the frontend React app using ESLint
-# - Runs backend unit tests using Node's test runner
+# - Runs backend and frontend unit tests using Jest
 
 name: CI
 
@@ -31,7 +31,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Run ESLint
         run: npm run lint
@@ -56,14 +56,11 @@ jobs:
           # Use the frontend's lockfile for cache key
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install dependencies (allows new test deps)
+      - name: Install dependencies (allow new Jest deps without lock update)
         run: npm install
-        # Using npm install instead of npm ci so CI can fetch newly added
-        # devDependencies (e.g., vitest) without requiring an updated lockfile.
-        # Once the lockfile is updated in the repo, switch back to `npm ci`.
 
-      - name: Run frontend unit tests
-        run: npm test
+      - name: Run frontend unit tests (with coverage)
+        run: npm run test:ci
 
   backend-test:
     name: Backend Unit Tests
@@ -84,13 +81,13 @@ jobs:
           # Use the backend's lockfile for cache key
           cache-dependency-path: backend/package-lock.json
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install dependencies (no lockfile present; allow new deps)
+        run: npm install
 
       - name: Generate Prisma client
         run: npm run prisma:gen
-        # Tests use enums/types from @prisma/client; generation ensures availability
+        # Ensure Prisma client is generated for any code paths that import it
 
-      - name: Run unit tests
-        run: npm test
+      - name: Run unit tests (with coverage)
+        run: npm run test:ci
         # The test script sets RB_DATA_MODE=memory and JWT_SECRET=test-secret internally

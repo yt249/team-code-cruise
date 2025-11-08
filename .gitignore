@@ -40,3 +40,12 @@ yarn-error.log*
 .cache/
 
 .specstory/
+
+# Coverage reports
+coverage/
+*/coverage/
+
+# Build outputs
+dist/
+*/dist/
+backend/dist/
