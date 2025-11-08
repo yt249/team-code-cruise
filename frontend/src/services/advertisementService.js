@@ -5,7 +5,19 @@
 
 import { getAuthToken } from './authService';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+// Resolve Vite env in browser; fall back to process.env in tests/Node
+function getViteEnv() {
+  try {
+     
+    return new Function('try { return import.meta.env } catch (e) { return {} }')();
+  } catch {
+    return {};
+  }
+}
+
+const API_BASE = (
+  getViteEnv().VITE_API_BASE_URL ?? globalThis.process?.env?.VITE_API_BASE_URL ?? 'http://localhost:3000'
+);
 
 /**
  * Handle API response errors

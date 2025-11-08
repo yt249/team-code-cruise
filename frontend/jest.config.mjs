@@ -1,8 +1,8 @@
 export default {
   testEnvironment: 'node',
-  roots: ['<rootDir>/src', '<rootDir>/tests'],
+  roots: ['<rootDir>/tests', '<rootDir>/src'],
   testMatch: ['**/?(*.)+(spec|test).[jt]s?(x)'],
-  moduleFileExtensions: ['js', 'jsx'],
+  moduleFileExtensions: ['js', 'jsx', 'json'],
   transform: {
     '^.+\.[jt]sx?$': [
       '@swc/jest',
@@ -18,5 +18,6 @@ export default {
   },
   moduleNameMapper: {
     '\\.(css|less|sass|scss)$': 'identity-obj-proxy'
-  }
+  },
+  clearMocks: true
 }
