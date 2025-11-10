@@ -14,6 +14,9 @@ export default {
         module: { type: 'commonjs' }
       }
     ]
+  },
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1'
   }
 }
 

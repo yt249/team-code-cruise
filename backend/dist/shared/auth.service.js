@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 export class AuthService {
     static required(req, res, next) {
         try {
-            const payload = this.verify(req);
+            const payload = AuthService.verify(req);
             if (!payload)
                 return res.status(401).json({ error: 'Missing Authorization' });
             req.user = payload;
@@ -15,7 +15,7 @@ export class AuthService {
     }
     static optional(req, _res, next) {
         try {
-            const payload = this.verify(req);
+            const payload = AuthService.verify(req);
             if (payload)
                 req.user = payload;
         }

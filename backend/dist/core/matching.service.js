@@ -20,17 +20,25 @@ export class MatchingService {
         if (!ride)
             throw Object.assign(new Error('Ride not found'), { status: 404 });
         await RideRepository.update(ride.id, { status: RideStatus.MATCHING });
-        const nearby = await DriverRepository.findNearby(ride.pickup, 15);
+        const nearby = await DriverRepository.findNearby(ride.pickup, 15); // 15km radius
         const choice = nearby[0];
         if (!choice) {
             await RideRepository.update(ride.id, { status: RideStatus.REQUESTED });
             return RideRepository.findById(ride.id);
         }
         await DriverRepository.setAvailability(choice.id, false);
-        return RideRepository.update(ride.id, {
-            status: RideStatus.DRIVER_ASSIGNED,
-            driverId: choice.id
-        });
+        try {
+            return await RideRepository.update(ride.id, {
+                status: RideStatus.DRIVER_ASSIGNED,
+                driverId: choice.id
+            });
+        }
+        catch (error) {
+            // If ride update fails, release the driver
+            console.error('[Matching] Failed to assign driver to ride, releasing driver:', choice.id);
+            await DriverRepository.setAvailability(choice.id, true);
+            throw error;
+        }
     }
     static async updateDriverLocation(driverId, lat, lon) {
         await DriverRepository.updateDriverLocation(driverId, lat, lon);

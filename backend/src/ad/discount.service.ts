@@ -124,3 +124,10 @@ function encodeRandom(length: number) {
   }
   return chars.join('')
 }
+
+export const __discountInternals = {
+  httpError,
+  generateUlid,
+  encodeTime,
+  encodeRandom,
+} as const

@@ -7,12 +7,13 @@ export const rideRouter = Router();
 const createRideSchema = z.object({
     pickup: z.object({ lat: z.number(), lon: z.number() }),
     dest: z.object({ lat: z.number(), lon: z.number() }),
-    quoteId: z.string().uuid()
+    quoteId: z.string().uuid(),
+    tokenId: z.string().min(1).optional()
 });
 rideRouter.post('/', AuthService.required, async (req, res) => {
     const riderId = req.user.sub;
-    const { pickup, dest, quoteId } = createRideSchema.parse(req.body);
-    const ride = await RideService.createRide({ riderId, pickup, dest, quoteId });
+    const { pickup, dest, quoteId, tokenId } = createRideSchema.parse(req.body);
+    const ride = await RideService.createRide({ riderId, pickup, dest, quoteId, tokenId });
     await MatchingService.assignDriver(ride.id);
     const hydrated = await RideService.getRide(ride.id, riderId);
     res.status(201).json(hydrated);

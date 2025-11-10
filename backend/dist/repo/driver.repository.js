@@ -61,6 +61,10 @@ const MemoryDriverRepository = {
             rating: d.rating,
             status: d.status
         }));
+        // Log first driver location as sample
+        const firstLoc = Array.from(db.driverLocations.entries())[0];
+        if (firstLoc) {
+        }
         return computeNearby(drivers, db.driverLocations, pickup, radiusKm);
     },
     async findById(driverId) {

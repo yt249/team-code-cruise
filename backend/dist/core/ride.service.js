@@ -2,6 +2,8 @@ import { RideStatus } from '@prisma/client';
 import { RideRepository } from '../repo/ride.repository.js';
 import { QuoteStore } from '../workbench/quoteStore.js';
 import { DriverRepository } from '../repo/driver.repository.js';
+import { DiscountService } from '../ad/discount.service.js';
+import { PricingService } from '../shared/pricing.service.js';
 function badRequest(message) {
     const err = new Error(message);
     err.status = 400;
@@ -29,14 +31,47 @@ export class RideService {
             Math.abs(quote.dest.lon - input.dest.lon) < epsilon;
         if (!coordsMatch)
             throw badRequest('Quote does not match requested route');
+        const boundTokenId = quote.discountTokenId ?? null;
+        const providedTokenId = input.tokenId ?? null;
+        if (boundTokenId && !providedTokenId) {
+            throw badRequest('Discount token required for discounted quote');
+        }
+        if (boundTokenId && providedTokenId && boundTokenId !== providedTokenId) {
+            throw badRequest('Discount token does not match quote');
+        }
+        if (!boundTokenId && providedTokenId) {
+            throw badRequest('Discount token is not associated with this quote');
+        }
+        let discountPercent = quote.discountPercent ?? null;
+        let discountedAmount = quote.discountedAmount ?? null;
+        if (boundTokenId) {
+            const token = await DiscountService.validateToken(boundTokenId, input.riderId, {
+                quoteId: input.quoteId
+            });
+            discountPercent = token.percent;
+            if (discountedAmount == null) {
+                const { discountedAmount: computed } = PricingService.applyDiscount(quote.amount, token.percent);
+                discountedAmount = computed;
+            }
+        }
+        const fareAmount = discountedAmount ?? quote.amount;
         const ride = await RideRepository.save({
             riderId: input.riderId,
             pickup: input.pickup,
             dest: input.dest,
-            fareAmount: quote.amount,
+            fareAmount,
             surge: quote.surge,
-            currency: quote.currency
+            currency: quote.currency,
+            discountPercent,
+            discountedAmount,
+            discountTokenId: boundTokenId
         });
+        if (boundTokenId) {
+            await DiscountService.redeemToken(boundTokenId, ride.id, {
+                quoteId: input.quoteId,
+                riderId: input.riderId
+            });
+        }
         await QuoteStore.delete(input.quoteId);
         return ride;
     }

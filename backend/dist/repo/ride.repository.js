@@ -6,7 +6,7 @@ import { isMemoryMode } from '../workbench/runtimeConfig.js';
 const PrismaRideRepository = {
     async save(input) {
         const rows = await prisma.$queryRaw `
-      INSERT INTO "Ride" ("riderId","pickup","destination","fareAmount","surge","currency","status")
+      INSERT INTO "Ride" ("riderId","pickup","destination","fareAmount","surge","currency","status","discountPercent","discountedAmount","discountTokenId")
       VALUES (
         ${input.riderId},
         ST_SetSRID(ST_MakePoint(${input.pickup.lon}, ${input.pickup.lat}), 4326)::geography,
@@ -14,7 +14,10 @@ const PrismaRideRepository = {
         ${input.fareAmount},
         ${input.surge},
         ${input.currency},
-        ${RideStatus.REQUESTED}
+        ${RideStatus.REQUESTED},
+        ${input.discountPercent ?? null},
+        ${input.discountedAmount ?? null},
+        ${input.discountTokenId ?? null}
       )
       RETURNING
         "id",
@@ -24,6 +27,9 @@ const PrismaRideRepository = {
         "fareAmount",
         "surge",
         "currency",
+        "discountPercent",
+        "discountedAmount",
+        "discountTokenId",
         "startedAt",
         "completedAt",
         "createdAt",
@@ -47,6 +53,9 @@ const PrismaRideRepository = {
         r."fareAmount",
         r."surge",
         r."currency",
+        r."discountPercent",
+        r."discountedAmount",
+        r."discountTokenId",
         r."startedAt",
         r."completedAt",
         r."createdAt",
@@ -102,6 +111,9 @@ const PrismaRideRepository = {
         r."fareAmount",
         r."surge",
         r."currency",
+        r."discountPercent",
+        r."discountedAmount",
+        r."discountTokenId",
         r."startedAt",
         r."completedAt",
         r."createdAt",
@@ -126,6 +138,7 @@ const PrismaRideRepository = {
 const MemoryRideRepository = {
     async save(input) {
         const db = getMemoryDb();
+        const now = new Date();
         const ride = {
             id: randomUUID(),
             riderId: input.riderId,
@@ -136,9 +149,13 @@ const MemoryRideRepository = {
             fareAmount: input.fareAmount,
             surge: input.surge,
             currency: input.currency,
+            discountPercent: input.discountPercent ?? null,
+            discountedAmount: input.discountedAmount ?? null,
+            discountTokenId: input.discountTokenId ?? null,
             startedAt: null,
             completedAt: null,
-            createdAt: new Date()
+            createdAt: now,
+            lastActivityAt: now
         };
         db.rides.set(ride.id, ride);
         return mapMemoryRide(ride);
@@ -155,7 +172,8 @@ const MemoryRideRepository = {
             throw new Error('Ride not found');
         db.rides.set(id, {
             ...ride,
-            ...patch
+            ...patch,
+            lastActivityAt: new Date()
         });
         return mapMemoryRide(db.rides.get(id));
     },
@@ -182,6 +200,9 @@ function mapPrismaRide(row) {
         fareAmount: row.fareAmount,
         surge: Number(row.surge),
         currency: row.currency,
+        discountPercent: row.discountPercent,
+        discountedAmount: row.discountedAmount,
+        discountTokenId: row.discountTokenId,
         pickup: { lat: Number(row.pickupLat), lon: Number(row.pickupLon) },
         dest: { lat: Number(row.destLat), lon: Number(row.destLon) },
         startedAt: row.startedAt,
@@ -217,6 +238,9 @@ function mapMemoryRide(ride) {
     const rider = db.users.get(ride.riderId) || null;
     const driver = ride.driverId ? db.drivers.get(ride.driverId) || null : null;
     const paymentIntent = Array.from(db.paymentIntents.values()).find((p) => p.rideId === ride.id) || null;
+    // Get vehicle and location for driver
+    const vehicle = driver?.vehicleId ? db.vehicles.get(driver.vehicleId) || null : null;
+    const driverLocation = ride.driverId ? db.driverLocations.get(ride.driverId) || null : null;
     return {
         id: ride.id,
         riderId: ride.riderId,
@@ -225,6 +249,9 @@ function mapMemoryRide(ride) {
         fareAmount: ride.fareAmount,
         surge: ride.surge,
         currency: ride.currency,
+        discountPercent: ride.discountPercent,
+        discountedAmount: ride.discountedAmount,
+        discountTokenId: ride.discountTokenId,
         pickup: ride.pickup,
         dest: ride.dest,
         startedAt: ride.startedAt,
@@ -235,7 +262,16 @@ function mapMemoryRide(ride) {
                 id: driver.id,
                 name: driver.name,
                 rating: driver.rating,
-                status: driver.status
+                status: driver.status,
+                vehicle: vehicle ? {
+                    make: vehicle.make,
+                    model: vehicle.model,
+                    plate: vehicle.plate,
+                    type: vehicle.type,
+                    color: 'Black' // Default color since it's not in DB
+                } : null,
+                phone: '+1 (555) 123-4567', // Mock phone number
+                location: driverLocation ? { lat: driverLocation.lat, lon: driverLocation.lon } : null
             }
             : null,
         rider: rider
