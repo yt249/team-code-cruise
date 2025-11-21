@@ -1,0 +1,41 @@
+name: Run Integration Tests
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+jobs:
+  frontend-integration:
+    runs-on: ubuntu-latest
+    env:
+      # Override these via repo/organization secrets if you want to point at a different backend or creds
+      CLOUD_API_BASE_URL: ${{ secrets.CLOUD_API_BASE_URL != '' && secrets.CLOUD_API_BASE_URL || 'https://97lrpz7c1e.execute-api.us-east-2.amazonaws.com/prod' }}
+      CLOUD_RIDER_EMAIL: ${{ secrets.CLOUD_RIDER_EMAIL != '' && secrets.CLOUD_RIDER_EMAIL || 'rider@example.com' }}
+      CLOUD_RIDER_PASSWORD: ${{ secrets.CLOUD_RIDER_PASSWORD != '' && secrets.CLOUD_RIDER_PASSWORD || 'ride1234' }}
+      CI: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: Install backend deps
+        working-directory: backend
+        run: npm ci
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend integration tests
+        working-directory: frontend
+        run: npm test -- cloud.integration.test.js --runInBand

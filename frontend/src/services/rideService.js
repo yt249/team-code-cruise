@@ -4,9 +4,9 @@
  */
 
 import { getAuthToken } from './authService';
+import { getApiBaseUrl } from './apiConfig';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
-console.log('[rideService] API_BASE =', API_BASE, 'import.meta.env.VITE_API_BASE_URL =', import.meta.env.VITE_API_BASE_URL);
+const API_BASE = getApiBaseUrl();
 
 /**
  * Convert frontend coordinate format to backend format

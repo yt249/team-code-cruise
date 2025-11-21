@@ -189,6 +189,11 @@ PORT=3000
 ```env
 VITE_API_BASE_URL=http://localhost:3000
 ```
+If you want to hit the deployed backend instead, set:
+```env
+VITE_API_BASE_URL=https://97lrpz7c1e.execute-api.us-east-2.amazonaws.com/prod
+```
+and run `npm run dev` in `frontend` (no local backend needed).
 
 ---
 

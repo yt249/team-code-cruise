@@ -4,8 +4,9 @@
  */
 
 import { getAuthToken } from './authService';
+import { getApiBaseUrl } from './apiConfig';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+const API_BASE = getApiBaseUrl();
 
 /**
  * Handle API response errors

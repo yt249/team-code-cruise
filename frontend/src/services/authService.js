@@ -3,8 +3,9 @@
  * Handles user login, token management, and authentication state
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
-console.log('[authService] API_BASE =', API_BASE, 'import.meta.env.VITE_API_BASE_URL =', import.meta.env.VITE_API_BASE_URL);
+import { getApiBaseUrl } from './apiConfig';
+
+const API_BASE = getApiBaseUrl();
 const AUTH_TOKEN_KEY = 'rideshare_auth_token';
 
 /**
