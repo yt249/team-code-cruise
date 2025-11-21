@@ -1,0 +1,641 @@
+name: Deploy AWS Lambda Functions
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - 'deploy-all-endpoints.sh'
+      - '.github/workflows/deploy-aws-lambda.yml'
+
+env:
+  AWS_REGION: us-east-2
+  NODE_VERSION: '20'
+
+jobs:
+  deploy-lambda:
+    name: Deploy Lambda Functions
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create Lambda deployment packages
+        run: |
+          # Create a working directory for Lambda builds
+          mkdir -p lambda-deploy
+          cd lambda-deploy
+
+          # Initialize package.json with dependencies
+          cat > package.json << 'EOF'
+          {
+            "name": "codecruise-lambda",
+            "version": "1.0.0",
+            "dependencies": {
+              "bcryptjs": "^2.4.3",
+              "jsonwebtoken": "^9.0.2",
+              "pg": "^8.11.3"
+            }
+          }
+          EOF
+
+          # Install production dependencies
+          npm install --production
+
+          echo "Dependencies installed successfully"
+
+      - name: Deploy Login Lambda
+        run: |
+          cd lambda-deploy
+          cat > index.js << 'HANDLER'
+          const bcrypt = require('bcryptjs');
+          const jwt = require('jsonwebtoken');
+          const { Client } = require('pg');
+          const DATABASE_URL = process.env.DATABASE_URL;
+          const JWT_SECRET = process.env.JWT_SECRET || 'secret';
+          exports.handler = async (event) => {
+            try {
+              const body = JSON.parse(event.body || '{}');
+              const { email, password } = body;
+              if (!email || !password) {
+                return { statusCode: 400, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Email and password required'}) };
+              }
+              const client = new Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false, checkServerIdentity: () => undefined } });
+              await client.connect();
+              const result = await client.query('SELECT * FROM "User" WHERE email = $1', [email]);
+              await client.end();
+              if (result.rows.length === 0) {
+                return { statusCode: 401, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Invalid credentials'}) };
+              }
+              const user = result.rows[0];
+              const isValid = await bcrypt.compare(password, user.passwordHash);
+              if (!isValid) {
+                return { statusCode: 401, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Invalid credentials'}) };
+              }
+              const token = jwt.sign({ sub: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+              return { statusCode: 200, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type,Authorization'}, body: JSON.stringify({ token }) };
+            } catch (error) {
+              console.error('Error:', error);
+              return { statusCode: 500, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Internal server error'}) };
+            }
+          };
+          HANDLER
+          zip -qr ../login.zip .
+          aws lambda update-function-code --function-name codecruise-login --zip-file fileb://../login.zip
+
+      - name: Deploy Me Lambda
+        run: |
+          cd lambda-deploy
+          cat > index.js << 'HANDLER'
+          const jwt = require('jsonwebtoken');
+          const { Client } = require('pg');
+          const DATABASE_URL = process.env.DATABASE_URL;
+          const JWT_SECRET = process.env.JWT_SECRET || 'secret';
+          exports.handler = async (event) => {
+            try {
+              const authHeader = event.headers.Authorization || event.headers.authorization;
+              if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                return { statusCode: 401, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Unauthorized'}) };
+              }
+              const token = authHeader.substring(7);
+              const decoded = jwt.verify(token, JWT_SECRET);
+              const client = new Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false, checkServerIdentity: () => undefined } });
+              await client.connect();
+              const result = await client.query('SELECT id, name, email, rating, "createdAt" FROM "User" WHERE id = $1', [decoded.sub]);
+              await client.end();
+              if (result.rows.length === 0) {
+                return { statusCode: 404, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'User not found'}) };
+              }
+              return { statusCode: 200, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type,Authorization'}, body: JSON.stringify(result.rows[0]) };
+            } catch (error) {
+              console.error('Error:', error);
+              return { statusCode: 500, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Internal server error'}) };
+            }
+          };
+          HANDLER
+          zip -qr ../me.zip .
+          aws lambda update-function-code --function-name codecruise-me --zip-file fileb://../me.zip
+
+      - name: Deploy Quotes Lambda
+        run: |
+          cd lambda-deploy
+          cat > index.js << 'HANDLER'
+          const jwt = require('jsonwebtoken');
+          const { Client } = require('pg');
+          const DATABASE_URL = process.env.DATABASE_URL;
+          const JWT_SECRET = process.env.JWT_SECRET || 'secret';
+          function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+          }
+          exports.handler = async (event) => {
+            try {
+              const body = JSON.parse(event.body || '{}');
+              const { pickup, dest } = body;
+              if (!pickup || !dest || !pickup.lat || !pickup.lon || !dest.lat || !dest.lon) {
+                return { statusCode: 400, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'pickup and dest with lat/lon required'}) };
+              }
+              const distanceKm = calculateDistance(pickup.lat, pickup.lon, dest.lat, dest.lon);
+              const baseFare = 10;
+              const perKm = 2.5;
+              const surge = 1.0;
+              const amount = Math.round((baseFare + distanceKm * perKm) * surge * 100) / 100;
+              const etaMinutes = Math.ceil(distanceKm / 0.5);
+              const quoteId = require('crypto').randomUUID();
+              const expiresAt = new Date(Date.now() + 10 * 60000);
+              const client = new Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false, checkServerIdentity: () => undefined } });
+              await client.connect();
+              try {
+                await client.query('INSERT INTO "Quote" (id, "pickupLat", "pickupLon", "destLat", "destLon", amount, surge, currency, "expiresAt", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)', [quoteId, pickup.lat, pickup.lon, dest.lat, dest.lon, amount, surge, 'USD', expiresAt, new Date()]);
+              } catch (err) { console.log('Quote table may not exist'); }
+              await client.end();
+              return { statusCode: 200, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type,Authorization'}, body: JSON.stringify({ id: quoteId, amount, surge, currency: 'USD', expiresAt: expiresAt.toISOString(), etaMinutes }) };
+            } catch (error) {
+              console.error('Error:', error);
+              return { statusCode: 500, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Internal server error'}) };
+            }
+          };
+          HANDLER
+          zip -qr ../quotes.zip .
+          aws lambda update-function-code --function-name codecruise-quotes --zip-file fileb://../quotes.zip
+
+      - name: Deploy Rides Create Lambda
+        run: |
+          cd lambda-deploy
+          cat > index.js << 'HANDLER'
+          const jwt = require('jsonwebtoken');
+          const { Client } = require('pg');
+          const DATABASE_URL = process.env.DATABASE_URL;
+          const JWT_SECRET = process.env.JWT_SECRET || 'secret';
+          const DRIVER_LOCATIONS = [
+            { lat: 40.4443, lon: -79.9436 },
+            { lat: 40.4506, lon: -79.9859 },
+            { lat: 40.4306, lon: -80.0059 },
+            { lat: 40.4606, lon: -79.9759 },
+            { lat: 40.4206, lon: -80.0159 }
+          ];
+          let initialized = false;
+          async function ensureInitialized(client) {
+            if (!initialized) {
+              console.log('[init-drivers] Initializing driver locations...');
+              const drivers = await client.query('SELECT id FROM "Driver"');
+              if (drivers.rows.length > 0) {
+                for (let i = 0; i < drivers.rows.length; i++) {
+                  const driver = drivers.rows[i];
+                  const location = DRIVER_LOCATIONS[i % DRIVER_LOCATIONS.length];
+                  await client.query('UPDATE "Driver" SET "currentLat" = $1, "currentLon" = $2 WHERE id = $3', [location.lat, location.lon, driver.id]);
+                }
+                console.log(`[init-drivers] Initialized ${drivers.rows.length} driver locations`);
+              }
+              initialized = true;
+            }
+          }
+          exports.handler = async (event) => {
+            try {
+              const authHeader = event.headers.Authorization || event.headers.authorization;
+              if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                return { statusCode: 401, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Unauthorized'}) };
+              }
+              const token = authHeader.substring(7);
+              const decoded = jwt.verify(token, JWT_SECRET);
+              const riderId = decoded.sub;
+              const body = JSON.parse(event.body || '{}');
+              const { pickup, dest, quoteId } = body;
+              if (!pickup || !dest || !quoteId) {
+                return { statusCode: 400, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'pickup, dest, and quoteId required'}) };
+              }
+              const client = new Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false, checkServerIdentity: () => undefined } });
+              await client.connect();
+              await ensureInitialized(client);
+              let fareAmount = 15;
+              try {
+                const quoteResult = await client.query('SELECT amount FROM "Quote" WHERE id = $1', [quoteId]);
+                if (quoteResult.rows.length > 0) fareAmount = quoteResult.rows[0].amount;
+              } catch (err) { console.log('Using default fare'); }
+              const rideId = require('crypto').randomUUID();
+              await client.query('INSERT INTO "Ride" (id, "riderId", "pickupLat", "pickupLon", "destLat", "destLon", "fareAmount", surge, currency, status, "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)', [rideId, riderId, pickup.lat, pickup.lon, dest.lat, dest.lon, fareAmount, 1.0, 'USD', 'PENDING', new Date()]);
+              const driverResult = await client.query('SELECT id FROM "Driver" WHERE available = true LIMIT 1');
+              let driverId = null;
+              if (driverResult.rows.length > 0) {
+                driverId = driverResult.rows[0].id;
+                await client.query('UPDATE "Ride" SET "driverId" = $1, status = $2 WHERE id = $3', [driverId, 'DRIVER_ASSIGNED', rideId]);
+                await client.query('UPDATE "Driver" SET available = false WHERE id = $1', [driverId]);
+              }
+              const rideDetails = await client.query('SELECT r.*, u.name as "driverName", d.rating as "driverRating", d."vehicleModel" as "driverVehicle" FROM "Ride" r LEFT JOIN "Driver" d ON r."driverId" = d.id LEFT JOIN "User" u ON d."userId" = u.id WHERE r.id = $1', [rideId]);
+              await client.end();
+              const ride = rideDetails.rows[0];
+              return { statusCode: 201, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type,Authorization'}, body: JSON.stringify({ id: ride.id, riderId: ride.riderId, driverId: ride.driverId, pickup: { lat: ride.pickupLat, lon: ride.pickupLon }, dest: { lat: ride.destLat, lon: ride.destLon }, fareAmount: ride.fareAmount, status: ride.status, driver: ride.driverId ? { name: ride.driverName, rating: ride.driverRating, vehicle: ride.driverVehicle } : null }) };
+            } catch (error) {
+              console.error('Error:', error);
+              return { statusCode: 500, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: error.message || 'Internal server error'}) };
+            }
+          };
+          HANDLER
+          zip -qr ../rides-create.zip .
+          aws lambda update-function-code --function-name codecruise-rides-create --zip-file fileb://../rides-create.zip
+
+      - name: Deploy Rides Get Lambda
+        run: |
+          cd lambda-deploy
+          cat > index.js << 'HANDLER'
+          const jwt = require('jsonwebtoken');
+          const { Client } = require('pg');
+          const DATABASE_URL = process.env.DATABASE_URL;
+          const JWT_SECRET = process.env.JWT_SECRET || 'secret';
+          exports.handler = async (event) => {
+            try {
+              const authHeader = event.headers.Authorization || event.headers.authorization;
+              if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                return { statusCode: 401, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Unauthorized'}) };
+              }
+              const token = authHeader.substring(7);
+              const decoded = jwt.verify(token, JWT_SECRET);
+              const riderId = decoded.sub;
+              const rideId = event.pathParameters?.id;
+              if (!rideId) {
+                return { statusCode: 400, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Ride ID required'}) };
+              }
+              const client = new Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false, checkServerIdentity: () => undefined } });
+              await client.connect();
+              const result = await client.query('SELECT r.*, u.name as "driverName", d.rating as "driverRating", d."vehicleModel" as "driverVehicle" FROM "Ride" r LEFT JOIN "Driver" d ON r."driverId" = d.id LEFT JOIN "User" u ON d."userId" = u.id WHERE r.id = $1 AND r."riderId" = $2', [rideId, riderId]);
+              await client.end();
+              if (result.rows.length === 0) {
+                return { statusCode: 404, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Ride not found'}) };
+              }
+              const ride = result.rows[0];
+              return { statusCode: 200, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type,Authorization'}, body: JSON.stringify({ id: ride.id, riderId: ride.riderId, driverId: ride.driverId, pickup: { lat: ride.pickupLat, lon: ride.pickupLon }, dest: { lat: ride.destLat, lon: ride.destLon }, fareAmount: ride.fareAmount, status: ride.status, driver: ride.driverId ? { name: ride.driverName, rating: ride.driverRating, vehicle: ride.driverVehicle } : null }) };
+            } catch (error) {
+              console.error('Error:', error);
+              return { statusCode: 500, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Internal server error'}) };
+            }
+          };
+          HANDLER
+          zip -qr ../rides-get.zip .
+          aws lambda update-function-code --function-name codecruise-rides-get --zip-file fileb://../rides-get.zip
+
+      - name: Deploy Rides Complete Lambda
+        run: |
+          cd lambda-deploy
+          cat > index.js << 'HANDLER'
+          const jwt = require('jsonwebtoken');
+          const { Client } = require('pg');
+          const DATABASE_URL = process.env.DATABASE_URL;
+          const JWT_SECRET = process.env.JWT_SECRET || 'secret';
+          exports.handler = async (event) => {
+            try {
+              const authHeader = event.headers.Authorization || event.headers.authorization;
+              if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                return { statusCode: 401, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Unauthorized'}) };
+              }
+              const token = authHeader.substring(7);
+              const decoded = jwt.verify(token, JWT_SECRET);
+              const riderId = decoded.sub;
+              const rideId = event.pathParameters?.id;
+              if (!rideId) {
+                return { statusCode: 400, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Ride ID required'}) };
+              }
+              const client = new Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false, checkServerIdentity: () => undefined } });
+              await client.connect();
+              const result = await client.query('UPDATE "Ride" SET status = $1, "completedAt" = $2 WHERE id = $3 AND "riderId" = $4 RETURNING "driverId"', ['COMPLETED', new Date(), rideId, riderId]);
+              if (result.rows.length === 0) {
+                await client.end();
+                return { statusCode: 404, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Ride not found'}) };
+              }
+              const driverId = result.rows[0].driverId;
+              if (driverId) {
+                await client.query('UPDATE "Driver" SET available = true WHERE id = $1', [driverId]);
+              }
+              await client.end();
+              return { statusCode: 200, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type,Authorization'}, body: JSON.stringify({ status: 'COMPLETED' }) };
+            } catch (error) {
+              console.error('Error:', error);
+              return { statusCode: 500, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: error.message || 'Internal server error'}) };
+            }
+          };
+          HANDLER
+          zip -qr ../rides-complete.zip .
+          aws lambda update-function-code --function-name codecruise-rides-complete --zip-file fileb://../rides-complete.zip
+
+      - name: Deploy Ads Eligibility Lambda
+        run: |
+          cd lambda-deploy
+          cat > index.js << 'HANDLER'
+          const jwt = require('jsonwebtoken');
+          const { Client } = require('pg');
+          const DATABASE_URL = process.env.DATABASE_URL;
+          const JWT_SECRET = process.env.JWT_SECRET || 'secret';
+          const COOLDOWN_MS = 15 * 1000;
+          exports.handler = async (event) => {
+            try {
+              const authHeader = event.headers.Authorization || event.headers.authorization;
+              if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                return { statusCode: 401, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Unauthorized'}) };
+              }
+              const token = authHeader.substring(7);
+              const decoded = jwt.verify(token, JWT_SECRET);
+              const riderId = decoded.sub;
+              const client = new Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false, checkServerIdentity: () => undefined } });
+              await client.connect();
+              const lastAdResult = await client.query('SELECT "completedAt" FROM "AdSession" WHERE "riderId" = $1 AND status = \'COMPLETED\' ORDER BY "completedAt" DESC LIMIT 1', [riderId]);
+              await client.end();
+              if (lastAdResult.rows.length > 0) {
+                const lastCompletedAt = new Date(lastAdResult.rows[0].completedAt).getTime();
+                const now = Date.now();
+                const timeSinceLastAd = now - lastCompletedAt;
+                if (timeSinceLastAd < COOLDOWN_MS) {
+                  const cooldownEndsAt = new Date(lastCompletedAt + COOLDOWN_MS).toISOString();
+                  return { statusCode: 200, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type,Authorization'}, body: JSON.stringify({ eligible: false, reason: 'COOLDOWN', cooldownEndsAt }) };
+                }
+              }
+              return { statusCode: 200, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type,Authorization'}, body: JSON.stringify({ eligible: true }) };
+            } catch (error) {
+              console.error('Error:', error);
+              return { statusCode: 500, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Internal server error'}) };
+            }
+          };
+          HANDLER
+          zip -qr ../ads-eligibility.zip .
+          aws lambda update-function-code --function-name codecruise-ads-eligibility --zip-file fileb://../ads-eligibility.zip
+
+      - name: Deploy Ads Sessions Lambda
+        run: |
+          cd lambda-deploy
+          cat > index.js << 'HANDLER'
+          const jwt = require('jsonwebtoken');
+          const { Client } = require('pg');
+          const DATABASE_URL = process.env.DATABASE_URL;
+          const JWT_SECRET = process.env.JWT_SECRET || 'secret';
+          exports.handler = async (event) => {
+            try {
+              const authHeader = event.headers.Authorization || event.headers.authorization;
+              if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                return { statusCode: 401, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Unauthorized'}) };
+              }
+              const token = authHeader.substring(7);
+              const decoded = jwt.verify(token, JWT_SECRET);
+              const riderId = decoded.sub;
+              const body = JSON.parse(event.body || '{}');
+              const percent = body.percent || 12;
+              const sessionId = require('crypto').randomUUID();
+              const expiresAt = new Date(Date.now() + 5 * 60000);
+              const client = new Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false, checkServerIdentity: () => undefined } });
+              await client.connect();
+              await client.query('INSERT INTO "AdSession" (id, "riderId", percent, status, "expiresAt", "createdAt") VALUES ($1, $2, $3, $4, $5, $6)', [sessionId, riderId, percent, 'ACTIVE', expiresAt, new Date()]);
+              await client.end();
+              return { statusCode: 201, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type,Authorization'}, body: JSON.stringify({ sessionId, provider: 'mock-ads', percent, expiresAt: expiresAt.toISOString() }) };
+            } catch (error) {
+              console.error('Error:', error);
+              return { statusCode: 500, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Internal server error'}) };
+            }
+          };
+          HANDLER
+          zip -qr ../ads-sessions.zip .
+          aws lambda update-function-code --function-name codecruise-ads-sessions --zip-file fileb://../ads-sessions.zip
+
+      - name: Deploy Ads Playback Lambda
+        run: |
+          cd lambda-deploy
+          cat > index.js << 'HANDLER'
+          const jwt = require('jsonwebtoken');
+          const JWT_SECRET = process.env.JWT_SECRET || 'secret';
+          exports.handler = async (event) => {
+            try {
+              const authHeader = event.headers.Authorization || event.headers.authorization;
+              if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                return { statusCode: 401, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Unauthorized'}) };
+              }
+              const token = authHeader.substring(7);
+              jwt.verify(token, JWT_SECRET);
+              const body = JSON.parse(event.body || '{}');
+              const { sessionId, event: adEvent } = body;
+              if (!sessionId || !adEvent) {
+                return { statusCode: 400, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'sessionId and event required'}) };
+              }
+              console.log(`Ad playback event: ${adEvent} for session ${sessionId}`);
+              return { statusCode: 200, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type,Authorization'}, body: JSON.stringify({ status: 'ok' }) };
+            } catch (error) {
+              console.error('Error:', error);
+              return { statusCode: 500, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Internal server error'}) };
+            }
+          };
+          HANDLER
+          zip -qr ../ads-playback.zip .
+          aws lambda update-function-code --function-name codecruise-ads-playback --zip-file fileb://../ads-playback.zip
+
+      - name: Deploy Ads Complete Lambda
+        run: |
+          cd lambda-deploy
+          cat > index.js << 'HANDLER'
+          const jwt = require('jsonwebtoken');
+          const { Client } = require('pg');
+          const DATABASE_URL = process.env.DATABASE_URL;
+          const JWT_SECRET = process.env.JWT_SECRET || 'secret';
+          exports.handler = async (event) => {
+            try {
+              const authHeader = event.headers.Authorization || event.headers.authorization;
+              if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                return { statusCode: 401, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Unauthorized'}) };
+              }
+              const token = authHeader.substring(7);
+              const decoded = jwt.verify(token, JWT_SECRET);
+              const body = JSON.parse(event.body || '{}');
+              const { sessionId } = body;
+              if (!sessionId) {
+                return { statusCode: 400, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'sessionId required'}) };
+              }
+              const client = new Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false, checkServerIdentity: () => undefined } });
+              await client.connect();
+              const sessionResult = await client.query('SELECT * FROM "AdSession" WHERE id = $1', [sessionId]);
+              if (sessionResult.rows.length === 0) {
+                await client.end();
+                return { statusCode: 404, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Session not found'}) };
+              }
+              const session = sessionResult.rows[0];
+              const tokenId = require('crypto').randomUUID();
+              const tokenExpiresAt = new Date(Date.now() + 10 * 60000);
+              await client.query('INSERT INTO "DiscountToken" (id, "sessionId", percent, state, "expiresAt", "createdAt") VALUES ($1, $2, $3, $4, $5, $6)', [tokenId, sessionId, session.percent, 'ISSUED', tokenExpiresAt, new Date()]);
+              await client.query('UPDATE "AdSession" SET status = $1, "completedAt" = $2 WHERE id = $3', ['COMPLETED', new Date(), sessionId]);
+              await client.end();
+              return { statusCode: 200, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type,Authorization'}, body: JSON.stringify({ tokenId, expiresAt: tokenExpiresAt.toISOString() }) };
+            } catch (error) {
+              console.error('Error:', error);
+              return { statusCode: 500, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Internal server error'}) };
+            }
+          };
+          HANDLER
+          zip -qr ../ads-complete.zip .
+          aws lambda update-function-code --function-name codecruise-ads-complete --zip-file fileb://../ads-complete.zip
+
+      - name: Deploy Payments Intents Lambda
+        run: |
+          cd lambda-deploy
+          cat > index.js << 'HANDLER'
+          const jwt = require('jsonwebtoken');
+          const { Client } = require('pg');
+          const DATABASE_URL = process.env.DATABASE_URL;
+          const JWT_SECRET = process.env.JWT_SECRET || 'secret';
+          exports.handler = async (event) => {
+            try {
+              const authHeader = event.headers.Authorization || event.headers.authorization;
+              if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                return { statusCode: 401, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Unauthorized'}) };
+              }
+              const token = authHeader.substring(7);
+              const decoded = jwt.verify(token, JWT_SECRET);
+              const riderId = decoded.sub;
+              const body = JSON.parse(event.body || '{}');
+              const { rideId } = body;
+              if (!rideId) {
+                return { statusCode: 400, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'rideId required'}) };
+              }
+              const client = new Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false, checkServerIdentity: () => undefined } });
+              await client.connect();
+              const rideResult = await client.query('SELECT * FROM "Ride" WHERE id = $1 AND "riderId" = $2', [rideId, riderId]);
+              if (rideResult.rows.length === 0) {
+                await client.end();
+                return { statusCode: 404, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Ride not found'}) };
+              }
+              const ride = rideResult.rows[0];
+              const intentId = `pi_${require('crypto').randomUUID()}`;
+              await client.query('INSERT INTO "PaymentIntent" (id, "rideId", amount, currency, status, "createdAt") VALUES ($1, $2, $3, $4, $5, $6)', [intentId, rideId, ride.fareAmount, 'USD', 'PENDING', new Date()]);
+              await client.end();
+              return { statusCode: 200, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type,Authorization'}, body: JSON.stringify({ intentId }) };
+            } catch (error) {
+              console.error('Error:', error);
+              return { statusCode: 500, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Internal server error'}) };
+            }
+          };
+          HANDLER
+          zip -qr ../payments-intents.zip .
+          aws lambda update-function-code --function-name codecruise-payments-intents --zip-file fileb://../payments-intents.zip
+
+      - name: Deploy Payments Confirm Lambda
+        run: |
+          cd lambda-deploy
+          cat > index.js << 'HANDLER'
+          const jwt = require('jsonwebtoken');
+          const { Client } = require('pg');
+          const DATABASE_URL = process.env.DATABASE_URL;
+          const JWT_SECRET = process.env.JWT_SECRET || 'secret';
+          exports.handler = async (event) => {
+            try {
+              const authHeader = event.headers.Authorization || event.headers.authorization;
+              if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                return { statusCode: 401, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Unauthorized'}) };
+              }
+              const token = authHeader.substring(7);
+              const decoded = jwt.verify(token, JWT_SECRET);
+              const body = JSON.parse(event.body || '{}');
+              const { intentId, method } = body;
+              if (!intentId || !method) {
+                return { statusCode: 400, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'intentId and method required'}) };
+              }
+              const client = new Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false, checkServerIdentity: () => undefined } });
+              await client.connect();
+              await client.query('UPDATE "PaymentIntent" SET status = $1, method = $2, "confirmedAt" = $3 WHERE id = $4', ['SUCCEEDED', method, new Date(), intentId]);
+              await client.end();
+              return { statusCode: 200, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type,Authorization'}, body: JSON.stringify({ status: 'SUCCEEDED' }) };
+            } catch (error) {
+              console.error('Error:', error);
+              return { statusCode: 500, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Internal server error'}) };
+            }
+          };
+          HANDLER
+          zip -qr ../payments-confirm.zip .
+          aws lambda update-function-code --function-name codecruise-payments-confirm --zip-file fileb://../payments-confirm.zip
+
+      - name: Deploy Reset Test Data Lambda
+        run: |
+          cd lambda-deploy
+          cat > index.js << 'HANDLER'
+          const jwt = require('jsonwebtoken');
+          const { Client } = require('pg');
+          const DATABASE_URL = process.env.DATABASE_URL;
+          const JWT_SECRET = process.env.JWT_SECRET || 'secret';
+          const DRIVER_LOCATIONS = [
+            { lat: 40.4443, lon: -79.9436 },
+            { lat: 40.4506, lon: -79.9859 },
+            { lat: 40.4306, lon: -80.0059 },
+            { lat: 40.4606, lon: -79.9759 },
+            { lat: 40.4206, lon: -80.0159 }
+          ];
+          exports.handler = async (event) => {
+            try {
+              const authHeader = event.headers.Authorization || event.headers.authorization;
+              if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                return { statusCode: 401, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: 'Unauthorized'}) };
+              }
+              const token = authHeader.substring(7);
+              jwt.verify(token, JWT_SECRET);
+              const client = new Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false, checkServerIdentity: () => undefined } });
+              await client.connect();
+              const driversResult = await client.query('SELECT id FROM "Driver"');
+              const drivers = driversResult.rows;
+              console.log(`Resetting ${drivers.length} drivers to AVAILABLE`);
+              for (let i = 0; i < drivers.length; i++) {
+                const driver = drivers[i];
+                const location = DRIVER_LOCATIONS[i % DRIVER_LOCATIONS.length];
+                await client.query('UPDATE "Driver" SET available = true, "currentLat" = $1, "currentLon" = $2 WHERE id = $3', [location.lat, location.lon, driver.id]);
+              }
+              await client.end();
+              return { statusCode: 200, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type,Authorization'}, body: JSON.stringify({ message: 'Test data reset successfully', driversReset: drivers.length }) };
+            } catch (error) {
+              console.error('Error:', error);
+              return { statusCode: 500, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: error.message || 'Internal server error'}) };
+            }
+          };
+          HANDLER
+          zip -qr ../reset-test-data.zip .
+          aws lambda update-function-code --function-name codecruise-reset-test-data --zip-file fileb://../reset-test-data.zip
+
+      - name: Cleanup
+        run: |
+          rm -rf lambda-deploy *.zip
+          echo "Deployment complete!"
+
+      - name: Summary
+        run: |
+          echo "============================================"
+          echo "  AWS Lambda Deployment Complete!"
+          echo "============================================"
+          echo ""
+          echo "Deployed 13 Lambda functions:"
+          echo "  - codecruise-login"
+          echo "  - codecruise-me"
+          echo "  - codecruise-quotes"
+          echo "  - codecruise-rides-create"
+          echo "  - codecruise-rides-get"
+          echo "  - codecruise-rides-complete"
+          echo "  - codecruise-ads-eligibility"
+          echo "  - codecruise-ads-sessions"
+          echo "  - codecruise-ads-playback"
+          echo "  - codecruise-ads-complete"
+          echo "  - codecruise-payments-intents"
+          echo "  - codecruise-payments-confirm"
+          echo "  - codecruise-reset-test-data"
+          echo ""
+          echo "API URL: https://97lrpz7c1e.execute-api.us-east-2.amazonaws.com/prod"
