@@ -7,7 +7,7 @@ type EligibilityState = {
 
 const riderState = new Map<string, EligibilityState>()
 
-const COOLDOWN_MS = 5 * 1000
+const COOLDOWN_MS = 15 * 1000  // 15 seconds for testing
 const DAILY_CAP = 5
 
 export type EligibilityResult = {

@@ -5,19 +5,8 @@
 
 import { getAuthToken } from './authService';
 
-// Resolve Vite env in browser; fall back to process.env in tests/Node
-function getViteEnv() {
-  try {
-     
-    return new Function('try { return import.meta.env } catch (e) { return {} }')();
-  } catch {
-    return {};
-  }
-}
-
-const API_BASE = (
-  getViteEnv().VITE_API_BASE_URL ?? globalThis.process?.env?.VITE_API_BASE_URL ?? 'http://localhost:3000'
-);
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+console.log('[rideService] API_BASE =', API_BASE, 'import.meta.env.VITE_API_BASE_URL =', import.meta.env.VITE_API_BASE_URL);
 
 /**
  * Convert frontend coordinate format to backend format
@@ -39,8 +28,17 @@ const toFrontendCoords = (location) => ({
 
 /**
  * Convert cents to dollars
+ * Note: Quote endpoint returns dollars, but ride endpoint returns cents
+ * If amount > 100, assume it's cents and convert. Otherwise assume dollars.
  */
-const toDollars = (cents) => cents / 100;
+const toDollars = (amount) => {
+  // If amount is greater than 100, it's likely in cents
+  if (amount > 100) {
+    return amount / 100;
+  }
+  // Otherwise it's already in dollars
+  return amount;
+};
 
 /**
  * Map backend RideStatus enum to frontend status

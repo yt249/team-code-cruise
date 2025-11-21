@@ -13,6 +13,7 @@ export default function PaymentConfirmation({ tripData, onConfirm, onCancel }) {
     adPlaying,
     adProgress,
     discountToken,
+    checkEligibility,
     startAdSession,
     playAd,
     updateAdProgress,
@@ -35,14 +36,15 @@ export default function PaymentConfirmation({ tripData, onConfirm, onCancel }) {
     const initAd = async () => {
       try {
         // Only check eligibility, don't create session until user clicks "Watch Ad"
+        await checkEligibility();
       } catch (err) {
         console.error('Failed to check ad eligibility:', err);
       }
     };
 
     initAd();
-     
-  }, [quote]);
+
+  }, [quote, checkEligibility]);
 
   // Track if we're initiating an ad watch
   const [initiatingAd, setInitiatingAd] = useState(false);

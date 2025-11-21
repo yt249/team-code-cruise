@@ -15,7 +15,7 @@ import './App.css';
 
 function AppContent() {
   const { isLoggedIn, loading: authLoading } = useAuth();
-  const { booking, trip, reset } = useBooking();
+  const { booking, trip, reset, requestRide } = useBooking();
   const { resetAd } = useAd();
   const [currentView, setCurrentView] = useState('landing'); // landing, booking, payment, tracking, completed
   const [tripData, setTripData] = useState(null);
@@ -56,8 +56,10 @@ function AppContent() {
 
       // If there's a discount token, request a NEW quote with the token
       // This associates the token with the quote in the backend
+      let quoteId = tripData.quote.id;
       if (tokenId) {
         const newQuote = await rideService.getQuote(pickup, dropoff, tokenId);
+        quoteId = newQuote.id;
 
         // Update tripData with the new quote
         setTripData({
@@ -65,6 +67,19 @@ function AppContent() {
           quote: newQuote,
         });
       }
+
+      // Actually request the ride using BookingContext to properly store state
+      const pickupAddress = tripData.pickup.address || 'Pickup Location';
+      const dropoffAddress = tripData.dropoff.address || 'Destination';
+
+      await requestRide(
+        pickup,
+        dropoff,
+        quoteId,
+        tokenId,
+        pickupAddress,
+        dropoffAddress
+      );
 
       // Clear ad state after successful booking (discount token consumed)
       resetAd();

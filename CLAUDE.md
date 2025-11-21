@@ -4,462 +4,524 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**team-code-cruise** is a frontend-only ride-sharing application built with React. The project uses mock data to simulate backend behavior and focuses on implementing two core user stories with realistic UI interactions.
+**CodeCruise** (team-code-cruise) is a full-stack ride-sharing application with a React frontend and Node.js/TypeScript backend. The application features authentication, real-time ride booking with automatic driver assignment, advertisement-based discounts, and payment processing.
 
 ## Scope
 
-- **Frontend Only**: React application with no backend implementation
-- **Mock Data**: All backend behavior simulated with mock data and functions
+- **Full-Stack Application**: React frontend + Node.js/TypeScript backend
+- **Real Backend Integration**: All services integrated with actual API endpoints
 - **User Stories Implemented**: User Story #1 (Core Ride Booking) and User Story #3 (Advertisement Discount)
 - **User Story #2 Discarded**: Price trends analytics feature is NOT included
+- **Development Database**: In-memory database for development, PostgreSQL for production
 
 ## Project Structure
 
-Planned structure for the React application:
-
 ```
 team-code-cruise/
-├── src/
-│   ├── components/
-│   │   ├── booking/          # User Story #1: Booking components
-│   │   │   ├── BookingUI.jsx
-│   │   │   ├── DriverTrackingUI.jsx
-│   │   │   └── PaymentUI.jsx
-│   │   └── ad/               # User Story #3: Ad discount components
-│   │       └── AdDiscountUI.jsx
-│   ├── services/             # Mock services (simulated backend)
-│   │   ├── mockBookingService.js
-│   │   ├── mockAdService.js
-│   │   ├── mockGeocodingService.js
-│   │   └── mockDriverService.js
-│   ├── data/                 # Mock data files
-│   │   ├── mockDrivers.js
-│   │   ├── mockAds.js
-│   │   └── mockRoutes.js
-│   ├── utils/                # Utility functions
-│   ├── context/              # React Context for state management
-│   └── App.jsx               # Main app component
+├── frontend/                 # React application (Vite)
+│   ├── src/
+│   │   ├── components/       # UI components
+│   │   │   ├── booking/      # Ride booking UI (NewBookingUI.jsx)
+│   │   │   ├── tracking/     # Driver tracking (DriverTrackingUI.jsx)
+│   │   │   ├── payment/      # Payment UI (PaymentUI.jsx, PaymentConfirmation.jsx)
+│   │   │   ├── ad/           # Advertisement discount (AdDiscountUI.jsx)
+│   │   │   ├── Landing/      # Login and landing pages
+│   │   │   ├── Map/          # Map display component
+│   │   │   └── TripCompleted/
+│   │   ├── context/          # State management (Auth, Booking, Ad)
+│   │   │   ├── AuthContext.jsx
+│   │   │   ├── BookingContext.jsx
+│   │   │   └── AdContext.jsx
+│   │   ├── services/         # Backend API integration
+│   │   │   ├── rideService.js
+│   │   │   ├── advertisementService.js
+│   │   │   └── authService.js (implicit via context)
+│   │   ├── utils/            # Helper functions
+│   │   └── App.jsx
+│   ├── tests/                # Jest unit tests
+│   ├── .env.development      # Frontend environment config
+│   └── package.json
+│
+├── backend/                  # Node.js/TypeScript API
+│   ├── src/
+│   │   ├── web/              # API controllers (routes)
+│   │   │   ├── auth.controller.ts
+│   │   │   ├── quote.controller.ts
+│   │   │   ├── ride.controller.ts
+│   │   │   ├── payment.controller.ts
+│   │   │   └── ad.controller.ts
+│   │   ├── core/             # Business logic services
+│   │   │   ├── ride.service.ts
+│   │   │   ├── quote.service.ts
+│   │   │   ├── payment.service.ts
+│   │   │   ├── matching.service.ts
+│   │   │   └── ride-timeout.service.ts
+│   │   ├── ad/               # Advertisement services
+│   │   │   ├── ad.service.ts
+│   │   │   ├── eligibility.service.ts
+│   │   │   └── discount.service.ts
+│   │   ├── shared/           # Shared utilities
+│   │   │   ├── auth.service.ts
+│   │   │   ├── pricing.service.ts
+│   │   │   ├── location.service.ts
+│   │   │   ├── rating.service.ts
+│   │   │   └── eventBus.ts
+│   │   ├── repo/             # Data repositories (DB access)
+│   │   ├── workbench/        # Development utilities
+│   │   │   ├── memoryDb.ts   # In-memory database
+│   │   │   └── runtimeConfig.ts
+│   │   ├── server/
+│   │   │   ├── app.ts        # Express app setup
+│   │   │   └── errorHandler.ts
+│   │   └── index.ts          # Entry point
+│   ├── tests/                # Jest unit tests
+│   ├── .env                  # Backend environment config
+│   └── package.json
+│
+├── database/                 # Database schema
+│   └── prisma/
+│       └── schema.prisma     # Prisma ORM schema
+│
 ├── docs/                     # Documentation and specs
 │   ├── UI-mockups-screenshots/
 │   ├── user-story-1/
 │   └── user-story-3/
-└── CLAUDE.md                 # This file
+│
+├── logs/                     # Development logs (gitignored)
+├── start-dev.sh              # Automated startup script
+├── CLAUDE.md                 # This file
+├── README.md                 # Main project documentation
+├── INTEGRATION_COMPLETE.md   # Frontend-backend integration details
+└── INTEGRATION_README.md     # API integration guide
 ```
 
-## User Stories
+## Backend Architecture
 
-### User Story #1: Core Ride Booking (Label Prefix: RB)
+### Service Layer Pattern
 
-**Feature**: Rider-side booking experience
+The backend follows a layered architecture:
+- **Controllers** (`web/`) - HTTP request/response handling, input validation
+- **Services** (`core/`, `ad/`, `shared/`) - Business logic
+- **Repositories** (`repo/`) - Database access abstraction
+- **Workbench** (`workbench/`) - Development utilities (in-memory DB, config)
 
-**Key Components**:
-- `BookingUI` (RB1.1) - Pickup/destination entry, fare quotes, ride request
-- `DriverTrackingUI` (RB1.2) - Live driver tracking simulation, ETA display
-- `PaymentUI` (RB1.3) - Payment method selection, receipts
-- `SessionManager` (RB1.4) - Session state management
+### Key Services
 
-**Mock Services Needed**:
-- Mock geocoding (convert "here" and "there" to coordinates)
-- Mock fare calculation (base fare + distance + surge)
-- Mock driver dispatch (simulated matching)
-- Mock real-time location updates (simulate driver movement)
-- Mock payment processing
+**Core Services**:
+- `QuoteService` - Fare calculation and quote management
+- `RideService` - Ride creation, state management, completion
+- `MatchingService` - Automatic driver assignment (finds nearest available driver)
+- `PaymentService` - Payment intent creation and confirmation
+- `RideTimeoutService` - Monitors and cancels expired rides
 
-**UI Flow** (see `docs/UI-mockups-screenshots/`):
-1. **Initial status** - Enter pickup ("here") and destination ("there")
-2. **Request ride** - Show fare quote, "Request Ride" button
-3. **Finding driver** - Loading state with cancel option
-4. **Driver on the way** - Map with route, driver location, ETA
-5. **Trip completion** - Arrive at destination
+**Advertisement Services**:
+- `AdService` - Ad session lifecycle, playback tracking
+- `EligibilityService` - Checks cooldown and daily ad limits
+- `DiscountService` - Generates and validates discount tokens
 
-**State Machine**:
-- **Booking**: Idle → QuoteOnly → Requested → DriverAssigned → Cancelled/Completed
-- **Trip**: DriverEnRoute → ArrivedAtPickup → InTrip → Completed
+**Shared Services**:
+- `AuthService` - JWT authentication and user management
+- `PricingService` - Fare calculation logic (base fare, distance, surge)
+- `LocationService` - Distance calculations using Haversine formula
+- `RatingService` - Driver rating management
 
-**Data Structures**:
-```javascript
-Booking: {
-  id: UUID,
-  rider_id: UUID,
-  pickup: { lat, lng, address },
-  dropoff: { lat, lng, address },
-  quote_id: UUID,
-  status: 'Quoted' | 'Requested' | 'Assigned' | 'Completed',
-  created_at: Timestamp
-}
+### Event System
 
-Trip: {
-  id: UUID,
-  booking_id: UUID,
-  driver_id: UUID,
-  driver: { name, rating, vehicle, phone },
-  state: 'DriverEnRoute' | 'Arrived' | 'InTrip' | 'Completed',
-  start_time: Timestamp,
-  end_time: Timestamp
-}
-```
+The backend uses an event bus (`shared/eventBus.ts`) for decoupled communication between services:
+- `RideCreated` - Emitted when a new ride is created
+- `RideCompleted` - Emitted when a ride is completed
+- `DriverAssigned` - Emitted when a driver is matched to a ride
 
-### User Story #3: Advertisement Discount (Label Prefix: AD)
+### Data Flow Example
 
-**Feature**: Optional ad viewing for ride discount (10-15%)
+**Creating a ride with discount**:
+1. Frontend calls `POST /quotes` with pickup/dropoff coordinates (and optional tokenId)
+2. `QuoteController` → `QuoteService.createQuote()`
+3. `PricingService` calculates base fare
+4. If tokenId provided, `DiscountService.validateToken()` applies discount
+5. Quote returned to frontend
+6. User requests ride: `POST /rides` with quoteId and tokenId
+7. `RideController` → `RideService.createRide()`
+8. `MatchingService.assignDriver()` finds nearest available driver
+9. Ride created with status `ACCEPTED`, driver auto-assigned
+10. Frontend polls `GET /rides/:id` for updates
 
-**Key Components**:
-- `AdDiscountUI` (SA1.1) - Ad offer modal, video player, discount application
-- Mock `AdService` (SA2.1) - Ad session management, verification
-- Mock `DiscountPolicy` (SA2.3) - Calculate discount percentage
+### Database Modes
 
-**Integration with User Story #1**:
-- Ad offer appears AFTER fare quote but BEFORE ride request
-- User can choose to watch ad or skip
-- If ad completed → apply discount to fare
-- If skipped → proceed with original fare
+**Development (Memory Mode)**:
+- Set `RB_DATA_MODE=memory` in backend `.env`
+- In-memory database with pre-seeded data (1 rider, 5 drivers)
+- Fast startup, no database setup required
+- Data resets on server restart
 
-**UI Flow** (see `docs/UI-mockups-screenshots/ad discount offer.png`):
-1. User sees fare quote
-2. Optional modal appears: "Save on your ride! Watch a 30-second ad to reduce your fare by $4.50"
-3. User choices:
-   - "Watch Ad" → Play 30-60 second video
-   - "Skip" → Continue with original fare
-4. If ad completed → Show updated fare with discount
-5. Proceed to booking
-
-**State Machine**:
-- **AdSession**: Idle → Offered → Playing → Completed/Skipped/Expired
-- **Booking**: QuoteOnly → DiscountApplied → Booked (or skip discount)
-
-**Data Structures**:
-```javascript
-AdSession: {
-  id: UUID,
-  rider_id: UUID,
-  status: 'Idle' | 'Offered' | 'Playing' | 'Completed' | 'Skipped' | 'Expired',
-  discount_pct: number | null,  // 10-15%
-  ad_token: string,
-  completed_at: Timestamp | null,
-  ttl_sec: number  // Time-to-live for session
-}
-
-Discount: {
-  session_id: UUID,
-  booking_id: UUID,
-  percentage: number,  // 10-15
-  amount: number,      // Dollar amount saved
-  applied_at: Timestamp
-}
-```
-
-**Mock Ad Requirements**:
-- Simulate 30-60 second video playback
-- Track playback events (play, pause, complete, skip)
-- Verify completion before issuing discount
-- Handle edge cases: user closes app, timer expires, network interruption
+**Production (PostgreSQL)**:
+- Remove `RB_DATA_MODE=memory` from `.env`
+- Requires PostgreSQL with PostGIS extension
+- Run `pnpm run prisma:migrate` to apply schema
+- Persistent data storage
 
 ## Technology Stack
 
-### Core Technologies
-- **React 18+** - Frontend framework
-- **JavaScript or TypeScript** - Primary language (choose one)
-- **CSS Modules or Styled Components** - Component styling
-- **React Router** - Navigation (if needed for multiple views)
+### Frontend
+- **React 19** - UI framework
+- **Vite** - Build tool and dev server
+- **React Context API** - State management (AuthContext, BookingContext, AdContext)
+- **CSS** - Styling (plain CSS, no preprocessors)
+- **uuid** - Unique ID generation
+- **Jest + @swc/jest** - Unit testing
 
-### Recommended Libraries
-- **Leaflet** or **React-Leaflet** - For map display (or use static map images)
-- **React Player** - For ad video playback (User Story #3)
-- **date-fns** or **dayjs** - Date manipulation
-- **uuid** - Generate unique IDs
-- **Recharts** or **Chart.js** - NOT NEEDED (User Story #2 discarded)
+### Backend
+- **Node.js** - Runtime environment
+- **TypeScript** - Primary language
+- **Express** - Web framework
+- **Prisma** - ORM for database access
+- **JWT (jsonwebtoken)** - Authentication
+- **bcryptjs** - Password hashing
+- **Zod** - Runtime type validation
+- **Jest + @swc/jest** - Unit testing
+- **tsx** - TypeScript execution for development
 
-### Development Tools
-- **Vite** or **Create React App** - Build tool
-- **ESLint + Prettier** - Code quality
-- **React DevTools** - Debugging
+### Database
+- **PostgreSQL + PostGIS** - Production database
+- **In-Memory Database** - Development mode (workbench/memoryDb.ts)
 
-## Development Workflow
+### Package Managers
+- **pnpm** - Backend package management
+- **npm** - Frontend package management
 
-### CRITICAL: Avoiding Concurrency Errors
+## Running the Application
 
-**To prevent "400 tool use concurrency issues"**:
-- Do NOT call multiple tools in parallel if one depends on another's output
-- Do NOT try to read/write the same file concurrently
-- Run independent operations in parallel, but sequential operations must wait
-- When in doubt, run operations sequentially
+### Quick Start (Recommended)
 
-### Task-Based Development
-
-**IMPORTANT**: Break work into small, discussable tasks:
-1. Use TodoWrite tool to track all tasks and subtasks
-2. Discuss approach before implementing large changes
-3. Complete one component at a time
-4. Test with mock data before moving forward
-5. Always wait for user confirmation before proceeding to next major task
-
-### Recommended Development Sequence
-
-1. **Setup Phase**:
-   - Initialize React project (Vite recommended)
-   - Set up project structure
-   - Create basic routing if needed
-   - Set up state management (React Context)
-
-2. **User Story #1 - Core Booking** (implement first):
-   - Create BookingUI component (pickup/destination inputs)
-   - Add mock geocoding service
-   - Implement fare quote calculation
-   - Add "Request Ride" button and flow
-   - Create DriverTrackingUI with simulated driver location
-   - Implement booking state machine
-   - Add mock payment flow
-   - Create PaymentUI component
-
-3. **User Story #3 - Ad Discount** (implement second, integrates with #1):
-   - Create AdDiscountUI component
-   - Implement ad offer modal (appears after fare quote)
-   - Add mock video player with playback controls
-   - Create ad session state management
-   - Implement discount calculation logic
-   - Integrate with booking flow (apply discount to fare)
-   - Handle edge cases (skip, expire, complete)
-
-## Mock Data Guidelines
-
-### Realistic Mock Data
-
-**For User Story #1**:
-- At least 5-10 mock drivers with names, ratings, vehicles
-- Mock routes with realistic distances and times
-- Surge pricing simulation (higher prices during "rush hours")
-- Base fare: $10, per-mile rate: $2.50
-
-**For User Story #3**:
-- Mock ad videos (can use placeholder URLs or timer simulation)
-- Ad metadata: duration (30-60s), advertiser, discount percentage
-- Generate 3-5 different mock ads to rotate
-
-### Mock Service Behavior
-
-- Add realistic delays (setTimeout) to simulate network requests (500-1500ms)
-- Include loading states for all async operations
-- Simulate occasional errors (5% failure rate) for testing error handling
-- Make mock data deterministic for easier testing
-
-### Example Mock Service Pattern
-
-```javascript
-// Mock ad service with simulated delay
-export const mockAdService = {
-  async startAdSession(riderId) {
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    return {
-      id: generateUUID(),
-      rider_id: riderId,
-      status: 'Offered',
-      ad_token: 'mock_ad_token_' + Date.now(),
-      discount_pct: Math.floor(Math.random() * 6) + 10, // 10-15%
-      ttl_sec: 300 // 5 minutes
-    };
-  },
-
-  async recordAdEvent(sessionId, event) {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    console.log(`Ad event: ${event} for session ${sessionId}`);
-  },
-
-  async finalizeDiscount(sessionId) {
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    // Mock verification
-    return {
-      percentage: 12,
-      amount: 4.50,
-      expiresAt: Date.now() + 600000 // 10 minutes
-    };
-  }
-};
-```
-
-## State Management
-
-For a frontend-only app:
-- **React Context + Hooks** - Recommended for this project
-- Create separate contexts for:
-  - `BookingContext` - Booking and trip state
-  - `AdContext` - Ad session and discount state
-  - `UserContext` - Mock user session
-
-Example structure:
-```javascript
-// BookingContext
-const BookingContext = createContext();
-
-export function BookingProvider({ children }) {
-  const [booking, setBooking] = useState(null);
-  const [trip, setTrip] = useState(null);
-  const [driver, setDriver] = useState(null);
-
-  // Methods to update state
-  const createBooking = async (pickup, dropoff) => { /* ... */ };
-  const requestRide = async (bookingId) => { /* ... */ };
-
-  return (
-    <BookingContext.Provider value={{
-      booking, trip, driver,
-      createBooking, requestRide
-    }}>
-      {children}
-    </BookingContext.Provider>
-  );
-}
-```
-
-## UI Mockups Reference
-
-All UI mockups are in `docs/UI-mockups-screenshots/`:
-- `Initial status.png` - Starting state with pickup/destination
-- `finding driver.png` - Loading/searching state
-- `driver on the way.png` - Active ride tracking with map
-- `ad discount offer.png` - **USER STORY #3** - Ad offer modal
-- `arrive with ad discount.png` - **USER STORY #3** - Completion with discount
-- `error page.png` - Error handling
-
-**Match these designs as closely as possible.**
-
-## Development Specifications
-
-### User Story #1 Spec
-- Full documentation: `docs/user-story-1/User Story #1 Dev Spec.pdf`
-- Focus on frontend components and mock services only
-- Ignore backend architecture details (BookingService, DispatchService are mocked)
-
-### User Story #3 Spec
-- Full documentation: `docs/user-story-3/User Story #3 Dev Spec.pdf`
-- Implement AdDiscountUI component
-- **Key requirement**: Ad must be optional and not block booking
-- Integrate with booking flow from User Story #1
-
-### User Story #2 - DISCARDED
-- `docs/user-story-2/` contains analytics/price trends spec
-- **DO NOT IMPLEMENT** - This feature is out of scope
-
-## Running the Project
-
-Once set up, typical commands will be:
-
+Use the automated startup script:
 ```bash
-# Install dependencies
-npm install
+./start-dev.sh
+```
 
-# Run development server
-npm run dev
+This starts both backend (port 3000) and frontend (port 5173) with logging to `logs/` directory.
 
-# Build for production
-npm run build
+**Default Login Credentials**:
+- Email: `rider@example.com`
+- Password: `ride1234`
 
-# Run linting
+### Manual Startup
+
+**Backend** (Terminal 1):
+```bash
+cd backend
+pnpm install                # First time only
+pnpm run dev:memory        # Starts with in-memory database
+```
+
+**Frontend** (Terminal 2):
+```bash
+cd frontend
+npm install                # First time only
+npm run dev                # Starts Vite dev server
+```
+
+### Running Tests
+
+**Backend Tests**:
+```bash
+cd backend
+npm test                   # Run once with lint
+npm run test:watch        # Watch mode (no lint)
+npm run test:ci           # With coverage (CI)
+```
+
+**Frontend Tests**:
+```bash
+cd frontend
+npm test                   # Run once with lint
+npm run test:watch        # Watch mode (no lint)
+npm run test:ci           # With coverage (CI)
+```
+
+**Important**: Backend tests require TypeScript compilation (`pretest` script handles this). If you see Prisma type errors, run `npm run prisma:gen` once.
+
+### Building for Production
+
+**Backend**:
+```bash
+cd backend
+pnpm run build            # Compiles TypeScript to dist/
+pnpm start                # Runs compiled code
+```
+
+**Frontend**:
+```bash
+cd frontend
+npm run build             # Creates production bundle in dist/
+npm run preview           # Preview production build
+```
+
+### Linting
+
+**Backend**:
+```bash
+cd backend
 npm run lint
 ```
 
-## Key Considerations
+**Frontend**:
+```bash
+cd frontend
+npm run lint
+```
 
-### No Backend
-- Everything runs in the browser
-- All data is mock/simulated
-- No actual API calls
-- No real database
-- No real ad network integration
+### Database Commands (Backend)
 
-### Focus Areas
-1. **UI/UX**: Match the mockup designs closely
-2. **State Management**: Handle booking, trip, and ad session states correctly
-3. **Mock Realism**: Make simulated behavior feel realistic
-4. **Integration**: User Story #3 must integrate smoothly with User Story #1
-5. **Code Quality**: Clean, maintainable React code
+```bash
+cd backend
+pnpm run prisma:gen       # Generate Prisma client
+pnpm run prisma:push      # Push schema changes to DB (dev)
+pnpm run prisma:migrate   # Create and apply migrations (production)
+```
 
-### Out of Scope
-- Real backend services
-- Actual payment processing
-- Real geolocation/mapping APIs (use mocks or static data)
-- User authentication (simulate with mock session)
-- Database integration
-- Real-time WebSocket connections (simulate with setInterval)
-- Real ad network integration (mock video playback)
-- **User Story #2** (Price trends analytics)
+## API Endpoints
 
-## Working with Claude Code
+### Authentication
+- `POST /login` - User login (returns JWT token)
+- `GET /me` - Get current user profile (requires auth)
 
-When implementing features:
-1. **Read the relevant dev spec section first** from PDFs in docs/
-2. **Create a task list using TodoWrite** before starting work
-3. **Implement User Story #1 completely first**, then User Story #3
-4. **Start with mock data** - create realistic mock data files first
-5. **Test each piece** before moving to the next
-6. **Be mindful of concurrency** - avoid parallel tool calls with dependencies
-7. **Ask before making large architectural decisions**
-8. **Discuss integration points** between User Story #1 and #3
+### Quotes & Rides
+- `POST /quotes` - Get fare quote (optional tokenId for discount)
+- `POST /rides` - Create ride (auto-assigns nearest driver)
+- `GET /rides/:id` - Get ride details
+- `POST /rides/:id/complete` - Mark ride as complete
+- `POST /rides/:id/cancel` - Cancel ride
 
-## Code Style Guidelines
+### Advertisements
+- `GET /ads/eligibility` - Check if user can watch ads (cooldown, daily limit)
+- `POST /ads/sessions` - Create ad session (specify discount percentage)
+- `POST /ads/playback` - Track playback events (start, q1, q2, q3, complete)
+- `POST /ads/complete` - Finalize ad, get discount tokenId
 
+### Payments
+- `POST /payments/intents` - Create payment intent for a ride
+- `POST /payments/confirm` - Confirm payment with method
+
+**Full API documentation**: See `INTEGRATION_README.md` and `INTEGRATION_COMPLETE.md`
+
+## Frontend State Management
+
+The frontend uses React Context API for state management with three main contexts:
+
+### AuthContext (`frontend/src/context/AuthContext.jsx`)
+Manages user authentication and session persistence:
+- Stores JWT token and user info
+- Handles login/logout
+- Auto-login on app reload (from localStorage)
+- Provides authenticated API request wrapper
+
+**Key Methods**:
+- `login(email, password)` - Authenticate user
+- `logout()` - Clear session
+- `isAuthenticated` - Boolean auth state
+
+### BookingContext (`frontend/src/context/BookingContext.jsx`)
+Manages ride booking flow and state:
+- Quote creation and management
+- Ride request and driver assignment
+- Trip state tracking
+- Payment processing
+
+**Key Methods**:
+- `getFareQuote(pickup, dropoff, tokenId?)` - Get quote with optional discount
+- `requestRide(pickup, dropoff, quoteId, tokenId?)` - Create ride, auto-assigns driver
+- `completeRide()` - Mark ride complete
+- `cancelRide()` - Cancel active ride
+- `createPayment(rideId)` - Create payment intent
+- `confirmPayment(intentId, method)` - Confirm payment
+- `updateTripState(state)` - Update trip progress
+
+**State**:
+- `quote` - Current fare quote
+- `ride` - Active ride details
+- `driver` - Assigned driver info
+- `tripState` - Current trip state (DriverEnRoute, Arrived, InTrip, Completed)
+
+### AdContext (`frontend/src/context/AdContext.jsx`)
+Manages advertisement viewing and discount flow:
+- Ad eligibility checking (cooldown, daily limits)
+- Ad session lifecycle
+- Playback event tracking
+- Discount token management
+
+**Key Methods**:
+- `checkEligibility()` - Check if user can watch ads
+- `startAdSession(percent)` - Create ad session (10-15% discount)
+- `playAd()` - Start ad playback
+- `updateAdProgress(progress)` - Auto-tracks quartiles (25%, 50%, 75%)
+- `completeAd()` - Finalize ad, receive discount tokenId
+- `skipAd()` - User skips ad
+
+**State**:
+- `isEligible` - Can user watch ads now?
+- `cooldownEndsAt` - When can user watch next ad?
+- `discountToken` - `{ tokenId, expiresAt }` for use in ride booking
+- `adSession` - Current ad session details
+
+## Key Implementation Details
+
+### Frontend-Backend Integration
+
+**Ride Booking Flow**:
+1. User enters pickup/dropoff coordinates (lat/lng required, not "here"/"there")
+2. `BookingContext.getFareQuote()` → `POST /quotes`
+3. Optional: User watches ad, gets discount token
+4. User requests ride with `requestRide()` → `POST /rides`
+5. Backend auto-assigns nearest available driver (instant, no "finding driver" animation)
+6. Frontend polls `GET /rides/:id` for updates (or can manually update tripState)
+7. User completes trip → `POST /rides/:id/complete`
+8. Create payment → `POST /payments/intents`
+9. Confirm payment → `POST /payments/confirm`
+
+**Advertisement Flow**:
+1. Check eligibility → `GET /ads/eligibility` (verifies cooldown, daily limit)
+2. If eligible, start session → `POST /ads/sessions` with discount percent (10-15)
+3. Play ad → `POST /ads/playback` with event "start"
+4. Auto-track progress → Frontend calls `POST /ads/playback` at 25%, 50%, 75%, 100%
+5. Complete ad → `POST /ads/complete` returns `{ tokenId, expiresAt }`
+6. Use tokenId in quote and ride creation for discount
+
+**Authentication**:
+- All API requests (except `/login`) require JWT token in `Authorization: Bearer <token>` header
+- AuthContext manages token storage (localStorage) and auto-login
+- Token expires after 24 hours (configurable via JWT_SECRET)
+
+### Important Differences from Original Plan
+
+**Driver Assignment**:
+- Original: Manual "finding driver" step with animation
+- Actual: Instant auto-assignment when ride is created via backend
+
+**Driver Location**:
+- Original: Animated movement from driver → pickup → destination
+- Actual: Static location from backend (no real-time tracking)
+
+**Coordinates Required**:
+- Original: Mock geocoding for "here" and "there"
+- Actual: Frontend must provide `{ lat, lng }` coordinates directly
+
+**Payment**:
+- Original: Not specified in detail
+- Actual: Two-step process (create intent, then confirm)
+
+### Development Database (Memory Mode)
+
+When backend runs with `RB_DATA_MODE=memory`:
+- 1 pre-seeded rider: `rider@example.com` / `ride1234`
+- 5 pre-seeded drivers across San Francisco:
+  1. John Smith - Toyota Camry (ABC-123) - Downtown
+  2. Maria Garcia - Honda Accord (XYZ-456) - Union Square
+  3. David Chen - Ford Fusion (DEF-789) - Mission District
+  4. Sarah Johnson - Chevrolet Malibu (GHI-012) - Financial District
+  5. Michael Brown - Nissan Altima (JKL-345) - SOMA
+- All data resets on server restart
+- No persistent storage required
+
+## Environment Configuration
+
+### Backend `.env`
+```env
+DATABASE_URL=postgresql://user:pass@localhost:5432/rb  # For production
+JWT_SECRET=your-secret-key-here                         # Change in production
+RB_DATA_MODE=memory                                     # Use memory mode for dev
+PORT=3000                                               # Backend port
+```
+
+### Frontend `.env.development`
+```env
+VITE_API_BASE_URL=http://localhost:3000  # Backend API URL
+```
+
+## Code Style and Conventions
+
+### Frontend (JavaScript/React)
 - Use functional components with hooks (no class components)
-- Keep components small and focused (under 300 lines)
-- Extract reusable logic into custom hooks
-- Use prop-types or TypeScript for type checking
-- Add JSDoc comments for complex functions
-- Follow consistent naming conventions (camelCase for functions/variables)
+- Keep components focused (prefer smaller, composable components)
+- Use camelCase for functions and variables
+- CSS classes use kebab-case
+- Add JSDoc comments for complex logic
 
-## Testing Approach
+### Backend (TypeScript)
+- Use TypeScript strict mode
+- Services should be stateless where possible
+- Use Zod for input validation at controller level
+- Follow Express middleware pattern for auth
+- Use async/await (no callbacks)
+- Repository pattern for database access
 
-For this mock app:
-- Manual testing is primary approach
-- Focus on visual testing against UI mockups
-- Test all state transitions:
-  - Booking lifecycle states
-  - Trip lifecycle states
-  - Ad session states
-- Verify ad discount integration with booking flow
-- Test edge cases (skip ad, ad timeout, cancel booking)
+## Testing
 
-## Current Status
+### Frontend Tests
+- Located in `frontend/tests/`
+- Use Jest with SWC (no Babel)
+- Default to Node environment (use `/** @jest-environment jsdom */` for DOM tests)
+- Mock external API calls
+- Test service layer logic, not just components
 
-**Project Phase**: Initialization - No code written yet
+### Backend Tests
+- Located in `backend/tests/`
+- Use Jest with SWC for TypeScript
+- Tests run in memory mode (`RB_DATA_MODE=memory`)
+- `pretest` script compiles TypeScript first
+- Mock Prisma client for unit tests
 
-**Next Steps**:
-1. Choose React setup (Vite recommended)
-2. Create project structure
-3. Set up React Context for state management
-4. Create mock data files
-5. Implement User Story #1 components (booking flow)
-6. Implement User Story #3 components (ad discount)
-7. Integrate User Story #3 with User Story #1
+## Documentation References
 
-## Integration Notes: User Story #1 + User Story #3
+- **README.md**: Quick start guide, project overview, feature list
+- **START_GUIDE.md**: Detailed startup instructions and troubleshooting
+- **INTEGRATION_README.md**: API endpoint documentation
+- **INTEGRATION_COMPLETE.md**: Frontend-backend integration details and data flow examples
+- **docs/user-story-1/**: User Story #1 (Core Ride Booking) specification
+- **docs/user-story-3/**: User Story #3 (Advertisement Discount) specification
+- **docs/UI-mockups-screenshots/**: UI design mockups
 
-**Critical Integration Points**:
+## Common Development Tasks
 
-1. **After Fare Quote, Before Ride Request**:
-   - BookingUI shows fare quote
-   - AdDiscountUI modal appears (if eligible)
-   - User watches ad OR skips
-   - Fare updates with discount OR stays the same
-   - User confirms and requests ride
+### Adding a New API Endpoint
+1. Create controller in `backend/src/web/` (handles HTTP request/response)
+2. Implement business logic in service (`backend/src/core/` or `backend/src/ad/`)
+3. Add route to `backend/src/server/app.ts`
+4. Update frontend service (`frontend/src/services/`)
+5. Update context if needed (`frontend/src/context/`)
+6. Write tests for both backend and frontend
 
-2. **State Flow**:
-   ```
-   Idle → Get Quote → [Ad Offer] → Apply Discount? → Request Ride → Track Driver
-   ```
+### Modifying Database Schema
+1. Edit `database/prisma/schema.prisma`
+2. Run `cd backend && pnpm run prisma:generate` to update Prisma client
+3. For production: `pnpm run prisma:migrate` to create migration
+4. For dev: `pnpm run prisma:push` to push schema changes
+5. Update repositories in `backend/src/repo/`
+6. Update memory database in `backend/src/workbench/memoryDb.ts` if using dev mode
 
-3. **Shared State**:
-   - Booking context needs to know about active ad session
-   - Ad context needs to update booking fare when discount applied
+### Adding a New Frontend Component
+1. Create component in appropriate `frontend/src/components/` subdirectory
+2. Use existing context hooks (`useAuth`, `useBooking`, `useAd`)
+3. Follow existing CSS patterns in `frontend/src/index.css` or component CSS
+4. Integrate with `frontend/src/App.jsx` routing if needed
 
-4. **UI Considerations**:
-   - Ad modal should not block user from skipping
-   - Clear visual indication of discount applied
-   - Show original fare and discounted fare side-by-side
+## Project Status
 
-## References
+**Integration: 95% Complete**
 
-- UI Mockups: `docs/UI-mockups-screenshots/`
-- User Story #1 Spec: `docs/user-story-1/User Story #1 Dev Spec.pdf`
-- User Story #3 Spec: `docs/user-story-3/User Story #3 Dev Spec.pdf`
-- ~~User Story #2 Spec~~: DISCARDED - Do not implement
-- Main branch: `main`
+✅ Authentication with JWT
+✅ Ride booking with auto-driver assignment
+✅ Advertisement discounts with eligibility checking
+✅ Payment processing (intent + confirmation)
+✅ Backend tests with CI
+✅ Frontend tests with CI
+🚧 UI polish and error handling improvements
+🚧 End-to-end integration testing
+
+## Important Notes for AI Assistance
+
+- This project evolved from frontend-only to full-stack
+- Mock services (`mockBookingService.js`, `mockAdService.js`) still exist but are UNUSED
+- All functionality now goes through real backend API
+- Use `INTEGRATION_COMPLETE.md` for understanding data flow
+- Memory mode (`RB_DATA_MODE=memory`) is recommended for development
+- Tests do not require running backend server (HTTP calls are mocked in tests)

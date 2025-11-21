@@ -1,0 +1,25 @@
+{
+  "name": "codecruise-lambda",
+  "version": "1.0.0",
+  "description": "AWS Lambda functions for CodeCruise backend",
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "package": "npm run build && npm run bundle",
+    "bundle": "node bundle.js",
+    "clean": "rm -rf dist *.zip"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.145",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/node": "^22.18.13",
+    "typescript": "^5.6.3"
+  }
+}

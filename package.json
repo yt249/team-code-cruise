@@ -1,8 +1,8 @@
 {
-  "devDependencies": {
-    "prisma": "^5.22.0"
-  },
+  "name": "lambda-function",
   "dependencies": {
-    "@prisma/client": "^5.22.0"
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.3"
   }
 }

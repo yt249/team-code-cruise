@@ -45,6 +45,16 @@ export function AuthProvider({ children }) {
       const profile = await authService.getProfile();
       setUser(profile);
       setIsLoggedIn(true);
+
+      // Reset test data after login for testing
+      try {
+        await authService.resetTestData();
+        console.log('[Auth] Test data reset successfully');
+      } catch (resetErr) {
+        console.warn('[Auth] Failed to reset test data:', resetErr.message);
+        // Don't fail login if reset fails
+      }
+
       return profile;
     } catch (err) {
       setError(err.message);

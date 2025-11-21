@@ -4,6 +4,7 @@
  */
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+console.log('[authService] API_BASE =', API_BASE, 'import.meta.env.VITE_API_BASE_URL =', import.meta.env.VITE_API_BASE_URL);
 const AUTH_TOKEN_KEY = 'rideshare_auth_token';
 
 /**
@@ -94,6 +95,32 @@ export const authService = {
       }
       const error = await response.json();
       throw new Error(error.error || 'Failed to get profile');
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Reset test data (drivers and rides) for testing
+   * Requires authentication
+   * @returns {Promise<Object>}
+   */
+  async resetTestData() {
+    const token = getAuthToken();
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    const response = await fetch(`${API_BASE}/reset-test-data`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Reset failed' }));
+      throw new Error(error.error || 'Failed to reset test data');
     }
 
     return response.json();
