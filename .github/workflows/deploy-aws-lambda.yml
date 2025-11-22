@@ -576,13 +576,6 @@ jobs:
           const { Client } = require('pg');
           const DATABASE_URL = process.env.DATABASE_URL;
           const JWT_SECRET = process.env.JWT_SECRET || 'secret';
-          const DRIVER_LOCATIONS = [
-            { lat: 40.4443, lon: -79.9436 },
-            { lat: 40.4506, lon: -79.9859 },
-            { lat: 40.4306, lon: -80.0059 },
-            { lat: 40.4606, lon: -79.9759 },
-            { lat: 40.4206, lon: -80.0159 }
-          ];
           exports.handler = async (event) => {
             try {
               const authHeader = event.headers.Authorization || event.headers.authorization;
@@ -593,16 +586,10 @@ jobs:
               jwt.verify(token, JWT_SECRET);
               const client = new Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false, checkServerIdentity: () => undefined } });
               await client.connect();
-              const driversResult = await client.query('SELECT id FROM "Driver"');
-              const drivers = driversResult.rows;
-              console.log(`Resetting ${drivers.length} drivers to AVAILABLE`);
-              for (let i = 0; i < drivers.length; i++) {
-                const driver = drivers[i];
-                const location = DRIVER_LOCATIONS[i % DRIVER_LOCATIONS.length];
-                await client.query('UPDATE "Driver" SET status = \'AVAILABLE\', "currentLat" = $1, "currentLon" = $2 WHERE id = $3', [location.lat, location.lon, driver.id]);
-              }
+              const result = await client.query('UPDATE "Driver" SET status = \'AVAILABLE\'');
+              console.log(`Reset ${result.rowCount} drivers to AVAILABLE`);
               await client.end();
-              return { statusCode: 200, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type,Authorization'}, body: JSON.stringify({ message: 'Test data reset successfully', driversReset: drivers.length }) };
+              return { statusCode: 200, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type,Authorization'}, body: JSON.stringify({ message: 'Test data reset successfully', driversReset: result.rowCount }) };
             } catch (error) {
               console.error('Error:', error);
               return { statusCode: 500, headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, body: JSON.stringify({error: error.message || 'Internal server error'}) };
