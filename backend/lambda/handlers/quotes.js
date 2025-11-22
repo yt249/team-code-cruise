@@ -16,13 +16,18 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 exports.handler = async (event) => {
   try {
     const body = JSON.parse(event.body || '{}');
-    const { pickup, dest } = body;
+    const { pickup, dest, dropoff } = body;
+    const destination = dest || dropoff;
 
-    if (!pickup || !dest || !pickup.lat || !pickup.lon || !dest.lat || !dest.lon) {
-      return badRequest('pickup and dest with lat/lon required');
+    // Accept both lon and lng
+    const pickupLon = pickup?.lon ?? pickup?.lng;
+    const destLon = destination?.lon ?? destination?.lng;
+
+    if (!pickup || !destination || !pickup.lat || !pickupLon || !destination.lat || !destLon) {
+      return badRequest('pickup and dest/dropoff with lat/lon required');
     }
 
-    const distanceKm = calculateDistance(pickup.lat, pickup.lon, dest.lat, dest.lon);
+    const distanceKm = calculateDistance(pickup.lat, pickupLon, destination.lat, destLon);
     const baseFare = 10;
     const perKm = 2.5;
     const surge = 1.0;
@@ -35,7 +40,7 @@ exports.handler = async (event) => {
     try {
       await client.query(
         'INSERT INTO "Quote" (id, "pickupLat", "pickupLon", "destLat", "destLon", amount, surge, currency, "expiresAt", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
-        [quoteId, pickup.lat, pickup.lon, dest.lat, dest.lon, amount, surge, 'USD', expiresAt, new Date()]
+        [quoteId, pickup.lat, pickupLon, destination.lat, destLon, amount, surge, 'USD', expiresAt, new Date()]
       );
     } catch (err) {
       console.log('Quote table may not exist');
