@@ -1,7 +1,7 @@
-const { getClient } = require('../shared/db');
-const { verifyToken } = require('../shared/auth');
-const { success, error, unauthorized, notFound, badRequest } = require('../shared/response');
-const { DRIVER_LOCATIONS } = require('../shared/constants');
+const { getClient } = require('./shared/db');
+const { verifyToken } = require('./shared/auth');
+const { success, error, unauthorized, notFound, badRequest } = require('./shared/response');
+const { DRIVER_LOCATIONS } = require('./shared/constants');
 
 exports.handler = async (event) => {
   try {

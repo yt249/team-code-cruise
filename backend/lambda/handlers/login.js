@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
-const { getClient } = require('../shared/db');
-const { signToken } = require('../shared/auth');
-const { success, error, badRequest } = require('../shared/response');
+const { getClient } = require('./shared/db');
+const { signToken } = require('./shared/auth');
+const { success, error, badRequest } = require('./shared/response');
 
 exports.handler = async (event) => {
   try {

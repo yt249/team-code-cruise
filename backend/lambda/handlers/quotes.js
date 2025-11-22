@@ -1,6 +1,6 @@
 const crypto = require('crypto');
-const { getClient } = require('../shared/db');
-const { success, error, badRequest } = require('../shared/response');
+const { getClient } = require('./shared/db');
+const { success, error, badRequest } = require('./shared/response');
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
   const R = 6371;

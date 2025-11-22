@@ -1,7 +1,7 @@
 const crypto = require('crypto');
-const { getClient } = require('../shared/db');
-const { verifyToken } = require('../shared/auth');
-const { success, error, unauthorized } = require('../shared/response');
+const { getClient } = require('./shared/db');
+const { verifyToken } = require('./shared/auth');
+const { success, error, unauthorized } = require('./shared/response');
 
 exports.handler = async (event) => {
   try {
