@@ -11,14 +11,11 @@ function getImportMetaEnv() {
 }
 
 export function getApiBaseUrl() {
-
-  console.log('globalthis: ', globalThis);
-  console.log('process: ', process);
-  console.log('process.env.VITE_API_BASE_URL: ', process.env.VITE_API_BASE_URL);
-  
-
   // Check for global config override (used in tests)
-  if (typeof globalThis !== 'undefined' && globalThis.__APP_CONFIG__?.apiBaseUrl) {
+  if (
+    typeof globalThis !== 'undefined' &&
+    globalThis.__APP_CONFIG__?.apiBaseUrl
+  ) {
     return globalThis.__APP_CONFIG__.apiBaseUrl;
   }
 
