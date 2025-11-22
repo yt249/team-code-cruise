@@ -612,6 +612,19 @@ jobs:
           zip -qr ../reset-test-data.zip .
           aws lambda update-function-code --function-name codecruise-reset-test-data --zip-file fileb://../reset-test-data.zip
 
+      - name: Configure Lambda Environment Variables
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          LAMBDAS="codecruise-login codecruise-me codecruise-quotes codecruise-rides-create codecruise-rides-get codecruise-rides-complete codecruise-ads-eligibility codecruise-ads-sessions codecruise-ads-playback codecruise-ads-complete codecruise-payments-intents codecruise-payments-confirm codecruise-reset-test-data"
+          for fn in $LAMBDAS; do
+            echo "Setting env vars for $fn..."
+            aws lambda update-function-configuration --function-name $fn \
+              --environment "Variables={DATABASE_URL=$DATABASE_URL,JWT_SECRET=production-secret-change-this,NODE_TLS_REJECT_UNAUTHORIZED=0}" \
+              --query 'FunctionName' --output text
+          done
+          echo "All Lambda environment variables configured!"
+
       - name: Cleanup
         run: |
           rm -rf lambda-deploy *.zip
