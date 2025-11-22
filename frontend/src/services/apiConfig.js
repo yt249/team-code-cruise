@@ -30,6 +30,6 @@ export function getApiBaseUrl() {
     return importMetaEnv.VITE_API_BASE_URL;
   }
 
-  // Default fallback
-  return 'http://localhost:3000';
+  // Production API URL (AWS API Gateway)
+  return 'https://97lrpz7c1e.execute-api.us-east-2.amazonaws.com/prod';
 }
