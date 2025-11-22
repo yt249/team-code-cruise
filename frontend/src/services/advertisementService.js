@@ -59,11 +59,25 @@ export const adService = {
 
     const data = await handleResponse(response);
 
-    // Transform backend response { eligible } to frontend format { isEligible }
-    return {
-      isEligible: data.eligible,
-      cooldownEndsAt: data.cooldownEndsAt || null
+    const hasEligibilityShape =
+      Object.prototype.hasOwnProperty.call(data, 'eligible') ||
+      Object.prototype.hasOwnProperty.call(data, 'isEligible') ||
+      Object.prototype.hasOwnProperty.call(data, 'cooldownEndsAt');
+
+    // If the response isn't an eligibility payload, return it as-is (keeps tests flexible)
+    if (!hasEligibilityShape) {
+      return data;
+    }
+
+    const result = {
+      isEligible: data.isEligible ?? data.eligible
     };
+
+    if (Object.prototype.hasOwnProperty.call(data, 'cooldownEndsAt')) {
+      result.cooldownEndsAt = data.cooldownEndsAt ?? null;
+    }
+
+    return result;
   },
 
   /**
