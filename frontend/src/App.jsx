@@ -20,6 +20,9 @@ function AppContent() {
   const [currentView, setCurrentView] = useState('landing'); // landing, booking, payment, tracking, completed
   const [tripData, setTripData] = useState(null);
 
+  // debugging amplify
+  console.log('API base URL:', getApiBaseUrl());
+
   // Handle ride cancellation - redirect to landing page
   useEffect(() => {
     if (
