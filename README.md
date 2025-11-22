@@ -6,7 +6,19 @@ A full-stack ride-sharing application with React frontend and Node.js/TypeScript
 
 ## 🚀 Quick Start
 
-### Automated Startup (Recommended)
+### For Web Users (Deployed App)
+
+If you're just using the app (not developing it):
+
+- Open the deployed frontend: `https://main.dxnszbisdba0f.amplifyapp.com/`.
+- Log in with the provided credentials:
+  - Email: `rider@example.com`
+  - Password: `ride1234`
+- The frontend is configured to talk to the deployed backend (AWS Lambda + API Gateway) via `VITE_API_BASE_URL` in `.env.production` or Amplify environment variables.
+
+No local setup, Node, or database is required to use the deployed web app.
+
+### Automated Startup (Recommended for Local Dev)
 
 Start both frontend and backend with one command:
 
@@ -194,6 +206,269 @@ If you want to hit the deployed backend instead, set:
 VITE_API_BASE_URL=https://97lrpz7c1e.execute-api.us-east-2.amazonaws.com/prod
 ```
 and run `npm run dev` in `frontend` (no local backend needed).
+
+---
+
+## 🌐 Cloud Deployment (AWS)
+
+This project is designed to run fully in AWS with:
+- Frontend on **AWS Amplify Hosting**
+- Backend on **AWS Lambda + API Gateway**
+- Database on **AWS RDS PostgreSQL**
+
+Below are the steps for someone who forks this repo and wants to deploy it end‑to‑end.
+
+### 1. Prerequisites
+
+- An AWS account with admin access (or permissions to use Amplify, Lambda, API Gateway, RDS, IAM, and EC2).
+- AWS CLI installed and configured:
+  ```bash
+  aws configure
+  ```
+- Node.js 16+ installed locally.
+- This repository forked to your own GitHub (or another supported git provider).
+
+### 2. Deploy the Backend (RDS + Lambda + API Gateway)
+
+All backend deployment scripts live in `scripts/` and are written to work with the AWS CLI.
+
+#### 2.1. Create RDS PostgreSQL
+
+From the project root:
+
+```bash
+cd scripts
+chmod +x setup-rds.sh
+./setup-rds.sh
+```
+
+What this does:
+- Creates a PostgreSQL RDS instance (`codecruise-db`) in your default VPC.
+- Opens port 5432 to the world (suitable for demo; tighten for production).
+- Creates a DB subnet group.
+- Writes a connection string to `backend/.env.rds` as `DATABASE_URL`.
+
+Next steps after RDS:
+
+```bash
+cd ../backend
+DATABASE_URL='<value from backend/.env.rds>' npm run prisma:migrate
+```
+
+This runs Prisma migrations against the new RDS database.
+
+#### 2.2. Deploy Lambda Functions and Wire API Gateway
+
+From the project root:
+
+```bash
+cd scripts
+chmod +x deploy-all-endpoints.sh
+./deploy-all-endpoints.sh
+```
+
+What this does:
+- Packages and deploys a set of Lambda functions (login, me, quotes, rides, ads, payments, reset-test-data).
+- Creates or reuses a `CodeCruise API` REST API in API Gateway.
+- Sets environment variables for each Lambda (including `DATABASE_URL` and `JWT_SECRET`).
+
+Then connect everything with API Gateway (if not already created by the scripts):
+
+```bash
+chmod +x setup-api-gateway.sh
+./setup-api-gateway.sh
+```
+
+This:
+- Creates or updates the `CodeCruise API`.
+- Maps HTTP methods and paths (e.g., `POST /login`, `POST /rides`, etc.) to the corresponding Lambda functions.
+- Enables CORS.
+- Deploys the API to the `prod` stage.
+
+At the end, `setup-api-gateway.sh` prints an API URL like:
+
+```text
+https://<api-id>.execute-api.<region>.amazonaws.com/prod
+```
+
+Use this URL as your production backend base URL.
+
+#### 2.3. (Optional) Set Up GitHub Actions for Automatic Lambda Deploys
+
+Instead of deploying Lambda code manually, you can use the provided GitHub Actions workflow at `.github/workflows/deploy-aws-lambda.yml`:
+
+```yaml
+name: Deploy AWS Lambda Functions
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/lambda/**'
+      - '.github/workflows/deploy-aws-lambda.yml'
+
+env:
+  AWS_REGION: us-east-2
+  NODE_VERSION: '20'
+
+jobs:
+  deploy-lambda:
+    name: Deploy Lambda Functions
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install Lambda dependencies
+        working-directory: backend/lambda
+        run: npm install --production
+
+      - name: Deploy all Lambda functions
+        working-directory: backend/lambda
+        run: |
+          # Define handler to Lambda function mapping
+          declare -A HANDLERS=(
+            ["login"]="codecruise-login"
+            ["me"]="codecruise-me"
+            ["quotes"]="codecruise-quotes"
+            ["rides-create"]="codecruise-rides-create"
+            ["rides-get"]="codecruise-rides-get"
+            ["rides-complete"]="codecruise-rides-complete"
+            ["rides-cancel"]="codecruise-rides-cancel"
+            ["ads-eligibility"]="codecruise-ads-eligibility"
+            ["ads-sessions"]="codecruise-ads-sessions"
+            ["ads-playback"]="codecruise-ads-playback"
+            ["ads-complete"]="codecruise-ads-complete"
+            ["ads-redeem"]="codecruise-ads-redeem"
+            ["payments-intents"]="codecruise-payments-intents"
+            ["payments-confirm"]="codecruise-payments-confirm"
+            ["reset-test-data"]="codecruise-reset-test-data"
+          )
+
+          # Deploy each handler
+          for handler in "${!HANDLERS[@]}"; do
+            echo "Deploying $handler -> ${HANDLERS[$handler]}"
+
+            # Create temp directory for this handler
+            rm -rf /tmp/lambda-deploy
+            mkdir -p /tmp/lambda-deploy
+
+            # Copy handler file as index.js
+            cp handlers/${handler}.js /tmp/lambda-deploy/index.js
+
+            # Copy shared utilities
+            cp -r shared /tmp/lambda-deploy/
+
+            # Copy node_modules
+            cp -r node_modules /tmp/lambda-deploy/
+
+            # Create zip
+            cd /tmp/lambda-deploy
+            zip -qr lambda.zip .
+
+            # Deploy to AWS
+            aws lambda update-function-code \
+              --function-name ${HANDLERS[$handler]} \
+              --zip-file fileb://lambda.zip \
+              --output text --query 'FunctionName'
+
+            cd -
+          done
+
+          echo "All Lambda functions deployed successfully!"
+```
+
+To use it:
+- Ensure the Lambda functions named in `HANDLERS` already exist in your AWS account (created once via console or the earlier scripts).
+- In your GitHub repo settings, add secrets:
+  - `AWS_ACCESS_KEY_ID`
+  - `AWS_SECRET_ACCESS_KEY`
+- Push changes to `backend/lambda/**` on the `main` branch; the workflow will package and deploy updated handler code automatically.
+
+### 3. Configure Frontend for Production (Vite)
+
+In `frontend/.env.production`, set:
+
+```env
+VITE_API_BASE_URL=https://<api-id>.execute-api.<region>.amazonaws.com/prod
+```
+
+Commit this file to your repo (be aware it makes the API URL public, which is normal for a frontend).
+
+### 4. Deploy Frontend with AWS Amplify
+
+#### 4.1. Connect Repository
+
+1. Go to AWS Amplify → **Hosting** → **Get started**.
+2. Choose *GitHub* (or your provider) and connect your fork of this repo.
+3. When asked for the app root, set it to `frontend`.
+
+#### 4.2. Build Settings (amplify.yml)
+
+Use the following Amplify build spec (in `frontend/amplify.yml` or inline in the Amplify console):
+
+```yaml
+version: 1
+applications:
+  - appRoot: frontend
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - npm ci --cache .npm --prefer-offline
+        build:
+          commands:
+            - npm run build
+      artifacts:
+        baseDirectory: dist
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - .npm/**/*'
+```
+
+Amplify runs `npm run build` in the `frontend` folder and serves the built assets from `dist/`.
+
+#### 4.3. Environment Variables (Optional but Recommended)
+
+Instead of (or in addition to) `.env.production`, you can set `VITE_API_BASE_URL` directly in Amplify:
+
+1. In the Amplify app, go to **App settings → Environment variables**.
+2. Add:
+   - `VITE_API_BASE_URL = https://<api-id>.execute-api.<region>.amazonaws.com/prod`
+3. Save and trigger a new build.
+
+Vite will inline `VITE_API_BASE_URL` at build time, and the browser app will call your deployed backend.
+
+### 5. Verify the Deployed Stack
+
+1. Open the Amplify app URL (e.g., `https://<your-app>.amplifyapp.com`).
+2. Open DevTools → Network tab.
+3. Log in with:
+   - Email: `rider@example.com`
+   - Password: `ride1234`
+4. Confirm API calls go to:
+   - `https://<api-id>.execute-api.<region>.amazonaws.com/prod/...`
+   not `http://localhost:3000`.
+
+If you see localhost in the deployed app:
+- Ensure `VITE_API_BASE_URL` is set in `.env.production` **or** Amplify env vars.
+- Rebuild in Amplify and hard‑refresh your browser (or use incognito).
 
 ---
 
