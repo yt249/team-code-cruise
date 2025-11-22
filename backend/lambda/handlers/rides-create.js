@@ -11,11 +11,16 @@ exports.handler = async (event) => {
 
     const riderId = decoded.sub;
     const body = JSON.parse(event.body || '{}');
-    const { pickup, dest, quoteId } = body;
+    const { pickup, dest, dropoff, quoteId } = body;
+    const destination = dest || dropoff;
 
-    if (!pickup || !dest || !quoteId) {
-      return badRequest('pickup, dest, and quoteId required');
+    if (!pickup || !destination || !quoteId) {
+      return badRequest('pickup, dest/dropoff, and quoteId required');
     }
+
+    // Accept both lon and lng
+    const pickupLon = pickup.lon ?? pickup.lng;
+    const destLon = destination.lon ?? destination.lng;
 
     const client = await getClient();
 
@@ -33,7 +38,7 @@ exports.handler = async (event) => {
     await client.query(
       `INSERT INTO "Ride" (id, "riderId", pickup, destination, "fareAmount", surge, currency, status, "createdAt")
        VALUES ($1, $2, ST_SetSRID(ST_MakePoint($3, $4), 4326)::geography, ST_SetSRID(ST_MakePoint($5, $6), 4326)::geography, $7, $8, $9, $10, $11)`,
-      [rideId, riderId, pickup.lon, pickup.lat, dest.lon, dest.lat, fareAmount, 1.0, 'USD', 'REQUESTED', new Date()]
+      [rideId, riderId, pickupLon, pickup.lat, destLon, destination.lat, fareAmount, 1.0, 'USD', 'REQUESTED', new Date()]
     );
 
     // Assign driver
