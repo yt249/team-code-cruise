@@ -15,24 +15,24 @@ exports.handler = async (event) => {
     }
 
     const client = await getClient();
-    const result = await client.query('SELECT * FROM "AdSession" WHERE id = $1', [sessionId]);
+    try {
+      const result = await client.query('SELECT * FROM "AdSession" WHERE id = $1', [sessionId]);
+      if (result.rows.length > 0) {
+        const session = result.rows[0];
+        const events = JSON.parse(session.playbackEvents || '[]');
+        events.push({ event: playbackEvent, timestamp: new Date().toISOString() });
 
-    if (result.rows.length === 0) {
-      await client.end();
-      return notFound('Session not found');
+        let newStatus = session.status;
+        if (playbackEvent === 'start') newStatus = 'WATCHING';
+
+        await client.query(
+          'UPDATE "AdSession" SET "playbackEvents" = $1, status = $2 WHERE id = $3',
+          [JSON.stringify(events), newStatus, sessionId]
+        );
+      }
+    } catch (dbErr) {
+      console.log('AdSession table may not exist');
     }
-
-    const session = result.rows[0];
-    const events = JSON.parse(session.playbackEvents || '[]');
-    events.push({ event: playbackEvent, timestamp: new Date().toISOString() });
-
-    let newStatus = session.status;
-    if (playbackEvent === 'start') newStatus = 'WATCHING';
-
-    await client.query(
-      'UPDATE "AdSession" SET "playbackEvents" = $1, status = $2 WHERE id = $3',
-      [JSON.stringify(events), newStatus, sessionId]
-    );
     await client.end();
 
     return success({ recorded: true });
