@@ -11,6 +11,8 @@ import FindingDriverModal from './components/FindingDriverModal/FindingDriverMod
 import DriverTrackingUI from './components/tracking/DriverTrackingUI';
 import TripCompletedUI from './components/TripCompleted/TripCompletedUI';
 import { rideService } from './services/rideService';
+import { getApiBaseUrl } from './services/apiConfig';
+
 import './App.css';
 
 function AppContent() {
