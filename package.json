@@ -1,5 +1,8 @@
 {
-  "name": "lambda-function",
+  "name": "codecruise-scripts",
+  "version": "1.0.0",
+  "description": "Database setup and seed scripts for CodeCruise",
+  "private": true,
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",

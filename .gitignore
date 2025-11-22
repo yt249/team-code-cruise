@@ -49,3 +49,7 @@ coverage/
 dist/
 */dist/
 backend/dist/
+
+# Lambda deployment artifacts
+*.zip
+lambda-deploy/

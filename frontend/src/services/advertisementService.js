@@ -57,7 +57,13 @@ export const adService = {
       }
     });
 
-    return handleResponse(response);
+    const data = await handleResponse(response);
+
+    // Transform backend response { eligible } to frontend format { isEligible }
+    return {
+      isEligible: data.eligible,
+      cooldownEndsAt: data.cooldownEndsAt || null
+    };
   },
 
   /**
